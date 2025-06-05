@@ -1,6 +1,7 @@
 from functools import wraps
 import secrets
 import sqlite3
+
 from flask import (
     Blueprint,
     request,
@@ -86,7 +87,6 @@ verify_template = """
 </html>
 """
 
-
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
@@ -154,6 +154,7 @@ def register():
                 message = 'Username or email already exists.'
             finally:
                 conn.close()
+
     return render_template_string(register_template, message=message)
 
 
@@ -172,7 +173,6 @@ def verify(token):
         message = 'Invalid verification token.'
     conn.close()
     return render_template_string(verify_template, message=message)
-
 
 @bp.route('/logout')
 def logout():
