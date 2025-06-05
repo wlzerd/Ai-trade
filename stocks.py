@@ -148,6 +148,14 @@ template = """
       <li>Day {{ loop.index }}: {{ '{:.2f}'.format(price) }}</li>
       {% endfor %}
     </ul>
+    <h2 class=\"mt-4\">Latest News</h2>
+    <ul>
+      {% for n in news %}
+      <li><a href="{{ n['link'] }}" target="_blank">{{ n['title']|truncate(100) }}</a>{% if n.get('publisher') %} ({{ n['publisher'] }}){% endif %}</li>
+      {% else %}
+      <li>No recent news found.</li>
+      {% endfor %}
+    </ul>
   {% endif %}
 </div>
 </body>
@@ -205,14 +213,52 @@ def stock(ticker):
         fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
         preds = predict_prices(data)
+        news = []
+        try:
+            fetched = []
+            if hasattr(stock, 'get_news'):
+                fetched = stock.get_news()
+            elif hasattr(stock, 'news'):
+                fetched = stock.news
 
-        return render_template_string(template, ticker=ticker, data=data,
-                                      period=period, chart_type=chart_type,
-                                      graph=graph_html, predictions=preds,
-                                      error=None)
+            if hasattr(fetched, 'to_dict'):
+                fetched = fetched.to_dict('records')
+
+            items = list(fetched)[:5]
+            parsed = []
+            for item in items:
+                title = item.get('title', '')
+                link = item.get('link')
+                if not link:
+                    link = item.get('canonicalUrl', {}).get('url') or item.get('clickThroughUrl', {}).get('url')
+                publisher = item.get('publisher') or item.get('provider', {}).get('displayName')
+                if title and link:
+                    parsed.append({'title': title, 'link': link, 'publisher': publisher})
+            news = parsed
+        except Exception:
+            news = []
+
+        return render_template_string(
+            template,
+            ticker=ticker,
+            data=data,
+            period=period,
+            chart_type=chart_type,
+            graph=graph_html,
+            predictions=preds,
+            news=news,
+            error=None,
+        )
     except Exception as e:
-        return render_template_string(template, ticker=ticker, data=None,
-                                      period=period, chart_type=chart_type,
-                                      graph='', predictions=[],
-                                      error=str(e))
+        return render_template_string(
+            template,
+            ticker=ticker,
+            data=None,
+            period=period,
+            chart_type=chart_type,
+            graph='',
+            predictions=[],
+            news=[],
+            error=str(e),
+        )
 
