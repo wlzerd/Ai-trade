@@ -44,3 +44,7 @@ python simulation.py AAPL 10000 5
 
 This fetches recent data for `AAPL`, predicts the next 5 closing prices and shows the projected portfolio value if you purchased shares with the given balance.
 
+On each stock page you can also run this simulation in the browser. Enter a seed
+amount and number of days in the **시뮬레이션 하기** form to see a table of
+predicted portfolio value and a simple trade log.
+
