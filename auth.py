@@ -1,5 +1,6 @@
 from functools import wraps
 import secrets
+import sqlite3
 
 from flask import (
     Blueprint,
@@ -121,9 +122,9 @@ def login():
             if not user['is_verified']:
                 message = 'Please verify your email before logging in.'
             else:
-                session.clear()
-                session['user_id'] = user['id']
-                return redirect(url_for('stocks.index'))
+            except sqlite3.IntegrityError:
+                message = 'Username or email already exists.'
+            finally:
         else:
             message = 'Invalid credentials.'
     return render_template_string(login_template, message=message)
