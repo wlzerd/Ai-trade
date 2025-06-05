@@ -10,6 +10,9 @@ Install dependencies with:
 pip install -r requirements.txt
 ```
 
+Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
+analysis and price predictions.
+
 ## Usage
 
 Run the Flask application:
@@ -20,6 +23,11 @@ python app.py
 
 The home page at `http://localhost:5000/` lets you save tickers and search existing ones.
 Click any saved ticker to view the interactive chart at `/stock/<ticker>`.
+
+Each stock page includes average sentiment from the latest news headlines.
+If an `OPENAI_API_KEY` environment variable is set, GPT is used to analyze
+the headlines and provide price forecasts. Otherwise VADER performs a simple
+sentiment check to adjust the naive predictions.
 
 ## Login
 
