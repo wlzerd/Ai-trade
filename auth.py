@@ -1,6 +1,9 @@
 from functools import wraps
 import secrets
 import sqlite3
+import smtplib
+from email.message import EmailMessage
+import os
 from flask import (
     Blueprint,
     request,
@@ -89,6 +92,37 @@ verify_template = """
 </html>
 """
 
+def send_verification_email(to_email, verify_url):
+    """Send a verification email with the given URL."""
+    server = os.environ.get("MAIL_SERVER")
+    port = int(os.environ.get("MAIL_PORT", 587))
+    user = os.environ.get("MAIL_USERNAME")
+    password = os.environ.get("MAIL_PASSWORD")
+    use_tls = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
+    if not (server and user and password):
+        return False
+
+    msg = EmailMessage()
+    msg["Subject"] = "Email Verification"
+    msg["From"] = user
+    msg["To"] = to_email
+    msg.set_content(f"Please visit the following link to verify your account:\n{verify_url}")
+
+    try:
+        if use_tls:
+            with smtplib.SMTP(server, port) as smtp:
+                smtp.starttls()
+                smtp.login(user, password)
+                smtp.send_message(msg)
+        else:
+            with smtplib.SMTP_SSL(server, port) as smtp:
+                smtp.login(user, password)
+                smtp.send_message(msg)
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
@@ -150,7 +184,10 @@ def register():
                 )
                 conn.commit()
                 verify_url = url_for('auth.verify', token=token, _external=True)
-                message = f'Check your email and visit {verify_url} to verify your account.'
+                if send_verification_email(email, verify_url):
+                    message = 'A verification link has been sent to your email.'
+                else:
+                    message = f'Email could not be sent. Visit {verify_url} to verify your account.'
                 return render_template_string(verify_template, message=message)
             except sqlite3.IntegrityError:
                 message = '이미 사용 중인 사용자 이름 또는 이메일입니다.'
