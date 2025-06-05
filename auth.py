@@ -1,5 +1,6 @@
 from functools import wraps
 import secrets
+
 from flask import (
     Blueprint,
     request,
@@ -38,7 +39,6 @@ login_template = """
 <p>Don't have an account? <a href='{{ url_for('auth.register') }}'>Register</a></p>
 </body>
 </html>
-"""
 
 register_template = """
 <!doctype html>
@@ -82,7 +82,6 @@ verify_template = """
 <p><a href='{{ url_for('auth.login') }}'>Login</a></p>
 </body>
 </html>
-"""
 
 
 @bp.before_app_request
@@ -122,9 +121,6 @@ def login():
                 session.clear()
                 session['user_id'] = user['id']
                 return redirect(url_for('stocks.index'))
-        else:
-            message = 'Invalid credentials.'
-    return render_template_string(login_template, message=message)
 
 
 @bp.route('/register', methods=['GET', 'POST'])
@@ -149,10 +145,6 @@ def register():
                 verify_url = url_for('auth.verify', token=token, _external=True)
                 message = f'Check your email and visit {verify_url} to verify your account.'
                 return render_template_string(verify_template, message=message)
-            except Exception:
-                conn.close()
-                message = 'Username already exists.'
-    return render_template_string(register_template, message=message)
 
 
 @bp.route('/verify/<token>')
@@ -171,8 +163,3 @@ def verify(token):
     conn.close()
     return render_template_string(verify_template, message=message)
 
-
-@bp.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('auth.login'))
