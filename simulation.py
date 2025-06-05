@@ -5,7 +5,7 @@ from stocks import fetch_news, analyze_sentiment, predict_prices
 
 
 def simulate(ticker, balance=10000, days=5):
-    """Run a simple buy-and-hold simulation using predicted prices."""
+    """Run an adaptive trading simulation using predicted prices."""
     stock = yf.Ticker(ticker)
     data = stock.history(period='1mo')
     if data.empty or 'Close' not in data:
@@ -18,11 +18,32 @@ def simulate(ticker, balance=10000, days=5):
     if not predictions:
         print('Unable to generate predictions')
         return
-    shares = balance / last_close
-    print(f'Starting with ${balance:.2f} and buying {shares:.2f} shares at ${last_close:.2f}')
+
+    current_price = last_close
+    cash = balance
+    shares = 0.0
+    bought = False
     for i, price in enumerate(predictions, start=1):
-        value = shares * price
-        print(f'Day {i}: predicted close ${price:.2f}, portfolio value ${value:.2f}')
+        action = 'HOLD'
+        if price > current_price and cash >= current_price:
+            shares_to_buy = cash / current_price
+            cash -= shares_to_buy * current_price
+            shares += shares_to_buy
+            action = 'BUY'
+            bought = True
+        elif price < current_price and shares > 0:
+            cash += shares * current_price
+            shares = 0
+            action = 'SELL'
+        value = cash + shares * price
+        print(f'Day {i}: predicted {price:.2f}, action {action}, shares {shares:.2f}, value ${value:.2f}')
+        current_price = price
+
+    if shares > 0:
+        cash += shares * current_price
+        print(f'Final sell {shares:.2f} shares at {current_price:.2f}, total ${cash:.2f}')
+    if not bought:
+        print('No buy signal during simulation period.')
 
 
 if __name__ == '__main__':

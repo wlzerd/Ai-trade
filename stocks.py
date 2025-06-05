@@ -171,41 +171,60 @@ def sentiment_to_label(score):
 
 
 def run_simulation(data, predictions, balance):
-    """Return portfolio values and trade log using real dates."""
+    """Simulate adaptive trading based on predicted prices."""
     if data is None or data.empty or 'Close' not in data or not predictions:
-        return [], []
+        return [], [], ""
 
     last_date = data.index[-1]
-    last_close = float(data['Close'].iloc[-1])
-    shares = balance / last_close
-
-    trades = [
-        {
-            'date': last_date.strftime('%Y-%m-%d'),
-            'action': 'BUY',
-            'shares': shares,
-            'price': last_close,
-            'value': shares * last_close,
-        }
-    ]
-
+    current_price = float(data['Close'].iloc[-1])
+    cash = balance
+    shares = 0.0
+    trades = []
     results = []
+    bought = False
+
     for i, price in enumerate(predictions, start=1):
         date = (last_date + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
-        value = shares * price
-        action = 'SELL' if i == len(predictions) else 'HOLD'
-        results.append({'date': date, 'value': value})
-        trades.append(
-            {
-                'date': date,
-                'action': action,
-                'shares': shares,
-                'price': price,
-                'value': value,
-            }
-        )
+        action = 'HOLD'
 
-    return results, trades
+        if price > current_price and cash >= current_price:
+            # Buy as price expected to rise
+            shares_to_buy = cash / current_price
+            cash -= shares_to_buy * current_price
+            shares += shares_to_buy
+            action = 'BUY'
+            bought = True
+        elif price < current_price and shares > 0:
+            # Sell if price expected to drop
+            cash += shares * current_price
+            shares = 0
+            action = 'SELL'
+
+        value = cash + shares * price
+        results.append({'date': date, 'value': value})
+        trades.append({
+            'date': date,
+            'action': action,
+            'shares': shares,
+            'price': current_price,
+            'value': value,
+        })
+
+        current_price = price
+
+    # Final liquidation
+    if shares > 0:
+        cash += shares * current_price
+        trades.append({
+            'date': (last_date + pd.Timedelta(days=len(predictions))).strftime('%Y-%m-%d'),
+            'action': 'FINAL SELL',
+            'shares': 0,
+            'price': current_price,
+            'value': cash,
+        })
+
+    note = '' if bought else '예상 기간 동안 매수 신호가 없습니다.'
+    return results, trades, note
 
 index_template = """
 <!doctype html>
@@ -352,6 +371,9 @@ template = """
     <div class=\"mt-4\">
       {{ profit_graph|safe }}
     </div>
+    {% if note %}
+    <div class=\"alert alert-info mt-3\">{{ note }}</div>
+    {% endif %}
     {% endif %}
     <h2 class=\"mt-4\">평균 뉴스 감정: {{ sentiment_label }}</h2>
     <h2 class=\"mt-4\">최근 뉴스</h2>
@@ -427,8 +449,8 @@ def stock(ticker):
         sentiment = analyze_sentiment(news)
         sentiment_label_val = sentiment_to_label(sentiment)
         preds = predict_prices(data, days=days, sentiment=sentiment)
-        simulation, trades = (run_simulation(data, preds, seed)
-                              if request.method == 'POST' else ([], []))
+        simulation, trades, note = (run_simulation(data, preds, seed)
+                                    if request.method == 'POST' else ([], [], ''))
         profit_graph_html = ''
         if simulation:
             fig2 = go.Figure()
@@ -455,6 +477,7 @@ def stock(ticker):
             profit_graph=profit_graph_html,
             seed=seed,
             days=days,
+            note=note,
             error=None,
         )
     except Exception as e:
@@ -474,6 +497,7 @@ def stock(ticker):
             profit_graph='',
             seed=seed,
             days=days,
+            note='',
             error=str(e),
         )
 
