@@ -1,9 +1,77 @@
-from flask import Flask, render_template_string, request
+from flask import Flask, render_template_string, request, url_for, redirect
+import sqlite3
 import yfinance as yf
 import plotly.graph_objects as go
 import plotly.io as pio
 
 app = Flask(__name__)
+
+DB_PATH = 'stocks.db'
+
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db()
+    conn.execute('CREATE TABLE IF NOT EXISTS tickers (id INTEGER PRIMARY KEY AUTOINCREMENT, ticker TEXT UNIQUE)')
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+index_template = """
+<!doctype html>
+<title>Saved Stocks</title>
+<h1>Saved Tickers</h1>
+<form method="post">
+    <input name="ticker" placeholder="Add ticker" />
+    <button type="submit">Add</button>
+</form>
+{% if message %}
+<p style="color:red;">{{ message }}</p>
+{% endif %}
+<form method="get">
+    <input name="q" placeholder="Search" value="{{ search }}" />
+    <button type="submit">Search</button>
+</form>
+<ul>
+{% for t in tickers %}
+    <li><a href="{{ url_for('stock', ticker=t) }}">{{ t }}</a></li>
+{% else %}
+    <li>No tickers found.</li>
+{% endfor %}
+</ul>
+"""
+
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    conn = get_db()
+    cursor = conn.cursor()
+    message = None
+    if request.method == 'POST':
+        ticker = request.form.get('ticker', '').upper().strip()
+        if ticker:
+            try:
+                cursor.execute('INSERT INTO tickers (ticker) VALUES (?)', (ticker,))
+                conn.commit()
+                conn.close()
+                return redirect(url_for('index'))
+            except sqlite3.IntegrityError:
+                message = 'Ticker already saved.'
+    search = request.args.get('q', '').upper()
+    if search:
+        cursor.execute('SELECT ticker FROM tickers WHERE ticker LIKE ?', (f"%{search}%",))
+    else:
+        cursor.execute('SELECT ticker FROM tickers')
+    tickers = [row['ticker'] for row in cursor.fetchall()]
+    conn.close()
+    return render_template_string(index_template, tickers=tickers, search=search, message=message)
 
 template = """
 <!doctype html>

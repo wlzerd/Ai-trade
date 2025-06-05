@@ -18,4 +18,5 @@ Run the Flask application:
 python app.py
 ```
 
-Then navigate to `http://localhost:5000/stock/MSFT` replacing `MSFT` with the ticker you want to view.
+The home page at `http://localhost:5000/` lets you save tickers and search existing ones.
+Click any saved ticker to view the interactive chart at `/stock/<ticker>`.
