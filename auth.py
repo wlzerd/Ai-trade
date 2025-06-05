@@ -1,5 +1,6 @@
 from functools import wraps
 import secrets
+import sqlite3
 
 from flask import (
     Blueprint,
@@ -41,7 +42,6 @@ login_template = """
 </body>
 </html>
 """
-
 
 register_template = """
 <!doctype html>
@@ -147,13 +147,14 @@ def register():
                     (username, email, generate_password_hash(password), token),
                 )
                 conn.commit()
-                conn.close()
                 verify_url = url_for('auth.verify', token=token, _external=True)
                 message = f'Check your email and visit {verify_url} to verify your account.'
                 return render_template_string(verify_template, message=message)
-            except Exception:
+            except sqlite3.IntegrityError:
+                message = 'Username or email already exists.'
+            finally:
                 conn.close()
-                message = 'Username already exists.'
+
     return render_template_string(register_template, message=message)
 
 
@@ -172,8 +173,8 @@ def verify(token):
         message = 'Invalid verification token.'
     conn.close()
     return render_template_string(verify_template, message=message)
+
 @bp.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('auth.login'))
-
