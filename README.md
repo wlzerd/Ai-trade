@@ -52,3 +52,16 @@ On each stock page you can also run this simulation in the browser. Enter a seed
 amount and number of days in the **시뮬레이션 하기** form to see a table of
 predicted portfolio value and a simple trade log.
 
+## Docker
+
+You can run the application in Docker. Build the image and start the container
+using Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+The web server will be available at `http://localhost:5000/`. The SQLite
+database file is stored on the host in the `data` directory so that your saved
+tickers persist between runs.
+
