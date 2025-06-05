@@ -2,3 +2,5 @@ Flask
 yfinance
 plotly
 feedparser
+vaderSentiment
+openai

@@ -5,10 +5,14 @@ from flask import (
     redirect,
     url_for,
 )
+import os
+import re
 import yfinance as yf
 import plotly.graph_objects as go
 import plotly.io as pio
 import feedparser
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import openai
 
 from db import get_db
 from auth import login_required
@@ -16,10 +20,42 @@ from auth import login_required
 bp = Blueprint('stocks', __name__)
 
 
-def predict_prices(data, days=5):
-    """Naively predict future close prices using recent average change."""
+def gpt_predict_prices(data, days, sentiment):
+    key = os.getenv("OPENAI_API_KEY")
+    if not key or data is None or data.empty or 'Close' not in data:
+        return None
+    try:
+        openai.api_key = key
+        closes = [round(float(c), 2) for c in data['Close'].tail(30).tolist()]
+        prompt = (
+            "Predict the next "
+            f"{days} closing prices based on this series: {closes} "
+            f"and an average news sentiment of {sentiment:.3f}. "
+            "Respond with numbers only."
+        )
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+        )
+        text = resp.choices[0].message["content"]
+        nums = re.findall(r"-?\d+\.\d+|-?\d+", text)
+        out = [float(n) for n in nums][:days]
+        if len(out) == days:
+            return out
+    except Exception:
+        pass
+    return None
+
+
+def predict_prices(data, days=5, sentiment=0.0):
+    """Predict future close prices using GPT or naive averaging."""
     if data is None or data.empty or 'Close' not in data:
         return []
+
+    preds = gpt_predict_prices(data, days, sentiment)
+    if preds is not None:
+        return preds
 
     closes = data['Close']
     if len(closes) < 2:
@@ -31,6 +67,10 @@ def predict_prices(data, days=5):
     predictions = []
     for _ in range(days):
         last += avg_change
+        if sentiment > 0.1:
+            last *= 1.01
+        elif sentiment < -0.1:
+            last *= 0.99
         predictions.append(float(last))
     return predictions
 
@@ -80,6 +120,44 @@ def fetch_news(ticker, stock):
     except Exception:
         pass
     return news
+
+
+def gpt_sentiment(news):
+    """Return sentiment score using GPT if API key set."""
+    key = os.getenv("OPENAI_API_KEY")
+    if not key or not news:
+        return None
+    try:
+        openai.api_key = key
+        text = "\n".join(n["title"] for n in news)
+        prompt = (
+            "Give a single sentiment score between -1 and 1 for these headlines:"\
+            f"\n{text}\nScore:"
+        )
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+        )
+        out = resp.choices[0].message["content"].strip()
+        match = re.search(r"-?\d+\.\d+|-?\d+", out)
+        if match:
+            return float(match.group())
+    except Exception:
+        pass
+    return None
+
+
+def analyze_sentiment(news):
+    """Return sentiment score averaged over news titles or via GPT."""
+    if not news:
+        return 0.0
+    score = gpt_sentiment(news)
+    if score is not None:
+        return score
+    analyzer = SentimentIntensityAnalyzer()
+    scores = [analyzer.polarity_scores(n["title"])['compound'] for n in news]
+    return sum(scores) / len(scores)
 
 index_template = """
 <!doctype html>
@@ -196,6 +274,7 @@ template = """
       <li>Day {{ loop.index }}: {{ '{:.2f}'.format(price) }}</li>
       {% endfor %}
     </ul>
+    <h2 class=\"mt-4\">Average News Sentiment: {{ sentiment|round(3) }}</h2>
     <h2 class=\"mt-4\">Latest News</h2>
     <ul>
       {% for n in news %}
@@ -260,8 +339,9 @@ def stock(ticker):
 
         fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
-        preds = predict_prices(data)
         news = fetch_news(ticker, stock)
+        sentiment = analyze_sentiment(news)
+        preds = predict_prices(data, sentiment=sentiment)
 
         return render_template_string(
             template,
@@ -272,6 +352,7 @@ def stock(ticker):
             graph=graph_html,
             predictions=preds,
             news=news,
+            sentiment=sentiment,
             error=None,
         )
     except Exception as e:
@@ -284,6 +365,7 @@ def stock(ticker):
             graph='',
             predictions=[],
             news=[],
+            sentiment=0.0,
             error=str(e),
         )
 
