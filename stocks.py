@@ -185,7 +185,7 @@ def run_simulation(data, predictions, balance):
 
     for i, price in enumerate(predictions, start=1):
         date = (last_date + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
-        action = 'HOLD'
+        action = None
 
         if price > current_price and cash >= current_price:
             # Buy as price expected to rise
@@ -202,25 +202,26 @@ def run_simulation(data, predictions, balance):
 
         value = cash + shares * price
         results.append({'date': date, 'value': value})
-        trades.append({
-            'date': date,
-            'action': action,
-            'shares': shares,
-            'price': current_price,
-            'value': value,
-        })
+
+        if action:
+            trades.append({
+                'date': date,
+                'action': action,
+                'shares': shares,
+                'price': current_price,
+                'value': value,
+            })
 
         current_price = price
 
-    # Final liquidation
+    # Final summary if still holding shares
     if shares > 0:
-        cash += shares * current_price
         trades.append({
             'date': (last_date + pd.Timedelta(days=len(predictions))).strftime('%Y-%m-%d'),
-            'action': 'FINAL SELL',
-            'shares': 0,
+            'action': 'HOLDING',
+            'shares': shares,
             'price': current_price,
-            'value': cash,
+            'value': cash + shares * current_price,
         })
 
     note = '' if bought else '예상 기간 동안 매수 신호가 없습니다.'
