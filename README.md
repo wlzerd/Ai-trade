@@ -1,6 +1,6 @@
 # Ai-trade
 
-This project provides a simple example of fetching stock data from Yahoo Finance and displaying it on the web.
+This project provides a simple example of fetching stock data from Yahoo Finance and displaying it on the web. The `/stock/<ticker>` page now renders an interactive Plotly chart with selectable time periods and chart types (line or candlestick) similar to options found in trading apps.
 
 ## Requirements
 
