@@ -1,7 +1,6 @@
 from functools import wraps
 import secrets
 import sqlite3
-
 from flask import (
     Blueprint,
     request,
