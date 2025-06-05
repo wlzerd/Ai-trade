@@ -121,13 +121,13 @@ def login():
         conn.close()
         if user and check_password_hash(user['password_hash'], password):
             if not user['is_verified']:
-                message = 'Please verify your email before logging in.'
+                message = '로그인 하기 전에 이메일 인증을 완료해주세요.'
             else:
                 session.clear()
                 session['user_id'] = user['id']
                 return redirect(url_for('stocks.index'))
         else:
-            message = 'Invalid credentials.'
+            message = '잘못된 사용자 이름 또는 비밀번호입니다.'
     return render_template_string(login_template, message=message)
 
 
@@ -139,7 +139,7 @@ def register():
         email = request.form['email']
         password = request.form['password']
         if not username or not password or not email:
-            message = 'Username, email and password required.'
+            message = '사용자 이름, 이메일, 비밀번호를 모두 입력해야 합니다.'
         else:
             conn = get_db()
             try:
@@ -153,7 +153,7 @@ def register():
                 message = f'Check your email and visit {verify_url} to verify your account.'
                 return render_template_string(verify_template, message=message)
             except sqlite3.IntegrityError:
-                message = 'Username or email already exists.'
+                message = '이미 사용 중인 사용자 이름 또는 이메일입니다.'
             finally:
                 conn.close()
     return render_template_string(register_template, message=message)
@@ -171,7 +171,7 @@ def verify(token):
         conn.commit()
         message = 'Email verified. You can now log in.'
     else:
-        message = 'Invalid verification token.'
+        message = '유효하지 않은 인증 토큰입니다.'
     conn.close()
     return render_template_string(verify_template, message=message)
 
