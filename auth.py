@@ -1,5 +1,6 @@
 from functools import wraps
 import secrets
+
 from flask import (
     Blueprint,
     request,
@@ -40,6 +41,7 @@ login_template = """
 </body>
 </html>
 """
+
 
 register_template = """
 <!doctype html>
@@ -84,7 +86,6 @@ verify_template = """
 </body>
 </html>
 """
-
 
 @bp.before_app_request
 def load_logged_in_user():
@@ -171,9 +172,8 @@ def verify(token):
         message = 'Invalid verification token.'
     conn.close()
     return render_template_string(verify_template, message=message)
-
-
 @bp.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('auth.login'))
+
