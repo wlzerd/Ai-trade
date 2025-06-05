@@ -43,7 +43,7 @@ def simulate(ticker, balance=10000, days=5):
         cash += shares * current_price
         print(f'Final sell {shares:.2f} shares at {current_price:.2f}, total ${cash:.2f}')
     if not bought:
-        print('No buy signal during simulation period.')
+        print('지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.')
 
 
 if __name__ == '__main__':

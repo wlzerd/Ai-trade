@@ -42,7 +42,7 @@ Provide a ticker and optionally an initial balance and number of days:
 python simulation.py AAPL 10000 5
 ```
 
-This fetches recent data for `AAPL`, predicts the next 5 closing prices and shows the portfolio value while automatically buying or selling based on the forecast. If prices are expected to fall for the entire period, the simulation reports that no buy signal occurred.
+This fetches recent data for `AAPL`, predicts the next 5 closing prices and shows the portfolio value while automatically buying or selling based on the forecast. If prices are expected to fall throughout the period, the simulation displays "지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다."
 
 On each stock page you can also run this simulation in the browser. Enter a seed
 amount and number of days in the **시뮬레이션 하기** form to see a table of
