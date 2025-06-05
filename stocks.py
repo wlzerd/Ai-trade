@@ -216,15 +216,17 @@ def run_simulation(data, predictions, balance):
 
         current_price = price
 
-    # Final summary if still holding shares
+    # Final sell if still holding shares
     if shares > 0:
+        cash += shares * current_price
         trades.append({
             'date': (last_date + pd.Timedelta(days=len(predictions))).strftime('%Y-%m-%d'),
-            'action': 'HOLDING',
+            'action': 'SELL',
             'shares': shares,
             'price': current_price,
-            'value': cash + shares * current_price,
+            'value': cash,
         })
+        shares = 0
 
     note = '' if bought and not no_buy_expected else '지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.'
     return results, trades, note
@@ -374,9 +376,9 @@ template = """
     <div class=\"mt-4\">
       {{ profit_graph|safe }}
     </div>
+    {% endif %}
     {% if note %}
     <div class=\"alert alert-info mt-3\">{{ note }}</div>
-    {% endif %}
     {% endif %}
     <h2 class=\"mt-4\">평균 뉴스 감정: {{ sentiment_label }}</h2>
     <h2 class=\"mt-4\">최근 뉴스</h2>
