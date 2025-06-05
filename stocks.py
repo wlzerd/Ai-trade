@@ -13,6 +13,7 @@ import plotly.io as pio
 import feedparser
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import openai
+import pandas as pd
 
 from db import get_db
 from auth import login_required
@@ -161,18 +162,40 @@ def analyze_sentiment(news):
 
 
 def run_simulation(data, predictions, balance):
-    """Return portfolio values and trade log for a buy-and-hold simulation."""
+    """Return portfolio values and trade log using real dates."""
     if data is None or data.empty or 'Close' not in data or not predictions:
         return [], []
+
+    last_date = data.index[-1]
     last_close = float(data['Close'].iloc[-1])
     shares = balance / last_close
-    trades = [f"Day 0: buy {shares:.2f} shares at ${last_close:.2f}"]
+
+    trades = [
+        {
+            'date': last_date.strftime('%Y-%m-%d'),
+            'action': 'BUY',
+            'shares': shares,
+            'price': last_close,
+            'value': shares * last_close,
+        }
+    ]
+
     results = []
     for i, price in enumerate(predictions, start=1):
+        date = (last_date + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
         value = shares * price
-        profit = value - balance
-        results.append({'day': i, 'predicted': price, 'value': value, 'profit': profit})
-        trades.append(f"Day {i}: value ${value:.2f}, profit ${profit:.2f}")
+        action = 'SELL' if i == len(predictions) else 'HOLD'
+        results.append({'date': date, 'value': value})
+        trades.append(
+            {
+                'date': date,
+                'action': action,
+                'shares': shares,
+                'price': price,
+                'value': value,
+            }
+        )
+
     return results, trades
 
 index_template = """
@@ -284,12 +307,6 @@ template = """
         </tbody>
       </table>
     </div>
-    <h2 class=\"mt-4\">Predicted Close Prices (Next {{ days }} days)</h2>
-    <ul>
-      {% for price in predictions %}
-      <li>Day {{ loop.index }}: {{ '{:.2f}'.format(price) }}</li>
-      {% endfor %}
-    </ul>
     <h2 class=\"mt-4\">Simulation</h2>
     <form method=\"post\" class=\"row gy-2 gx-2 align-items-center mb-3\">
       <div class=\"col-auto\">
@@ -302,32 +319,28 @@ template = """
         <button class=\"btn btn-warning\" type=\"submit\">시뮬레이션 하기</button>
       </div>
     </form>
-    {% if simulation %}
+    {% if trades %}
     <div class=\"table-responsive\">
       <table class=\"table table-bordered\">
         <thead>
-          <tr><th>Day</th><th>Predicted Close</th><th>Value</th><th>Profit</th></tr>
+          <tr><th>Date</th><th>Action</th><th>Shares</th><th>Price</th><th>Value</th></tr>
         </thead>
         <tbody>
-          {% for r in simulation %}
+          {% for t in trades %}
           <tr>
-            <td>{{ r.day }}</td>
-            <td>{{ '{:.2f}'.format(r.predicted) }}</td>
-            <td>{{ '{:.2f}'.format(r.value) }}</td>
-            <td>{{ '{:.2f}'.format(r.profit) }}</td>
+            <td>{{ t.date }}</td>
+            <td>{{ t.action }}</td>
+            <td>{{ '{:.2f}'.format(t.shares) }}</td>
+            <td>{{ '{:.2f}'.format(t.price) }}</td>
+            <td>{{ '{:.2f}'.format(t.value) }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% endif %}
-    {% if trades %}
-    <h3 class=\"mt-3\">모의투자 거래내역</h3>
-    <ul>
-      {% for t in trades %}
-      <li>{{ t }}</li>
-      {% endfor %}
-    </ul>
+    <div class=\"mt-4\">
+      {{ profit_graph|safe }}
+    </div>
     {% endif %}
     <h2 class=\"mt-4\">Average News Sentiment: {{ sentiment|round(3) }}</h2>
     <h2 class=\"mt-4\">Latest News</h2>
@@ -404,6 +417,15 @@ def stock(ticker):
         preds = predict_prices(data, days=days, sentiment=sentiment)
         simulation, trades = (run_simulation(data, preds, seed)
                               if request.method == 'POST' else ([], []))
+        profit_graph_html = ''
+        if simulation:
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(x=[r['date'] for r in simulation],
+                                      y=[r['value'] for r in simulation],
+                                      mode='lines+markers', name='Value'))
+            fig2.update_layout(title='Portfolio Value', xaxis_title='Date',
+                               yaxis_title='Value', template='plotly_white')
+            profit_graph_html = pio.to_html(fig2, full_html=False)
 
         return render_template_string(
             template,
@@ -417,6 +439,7 @@ def stock(ticker):
             sentiment=sentiment,
             simulation=simulation,
             trades=trades,
+            profit_graph=profit_graph_html,
             seed=seed,
             days=days,
             error=None,
@@ -434,6 +457,7 @@ def stock(ticker):
             sentiment=0.0,
             simulation=[],
             trades=[],
+            profit_graph='',
             seed=seed,
             days=days,
             error=str(e),
