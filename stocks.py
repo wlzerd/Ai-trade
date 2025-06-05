@@ -159,6 +159,22 @@ def analyze_sentiment(news):
     scores = [analyzer.polarity_scores(n["title"])['compound'] for n in news]
     return sum(scores) / len(scores)
 
+
+def run_simulation(data, predictions, balance):
+    """Return portfolio values and trade log for a buy-and-hold simulation."""
+    if data is None or data.empty or 'Close' not in data or not predictions:
+        return [], []
+    last_close = float(data['Close'].iloc[-1])
+    shares = balance / last_close
+    trades = [f"Day 0: buy {shares:.2f} shares at ${last_close:.2f}"]
+    results = []
+    for i, price in enumerate(predictions, start=1):
+        value = shares * price
+        profit = value - balance
+        results.append({'day': i, 'predicted': price, 'value': value, 'profit': profit})
+        trades.append(f"Day {i}: value ${value:.2f}, profit ${profit:.2f}")
+    return results, trades
+
 index_template = """
 <!doctype html>
 <html lang=\"en\">
@@ -268,12 +284,51 @@ template = """
         </tbody>
       </table>
     </div>
-    <h2 class=\"mt-4\">Predicted Close Prices (Next 5 days)</h2>
+    <h2 class=\"mt-4\">Predicted Close Prices (Next {{ days }} days)</h2>
     <ul>
       {% for price in predictions %}
       <li>Day {{ loop.index }}: {{ '{:.2f}'.format(price) }}</li>
       {% endfor %}
     </ul>
+    <h2 class=\"mt-4\">Simulation</h2>
+    <form method=\"post\" class=\"row gy-2 gx-2 align-items-center mb-3\">
+      <div class=\"col-auto\">
+        <input name=\"seed\" class=\"form-control\" placeholder=\"Seed\" value=\"{{ seed }}\">
+      </div>
+      <div class=\"col-auto\">
+        <input name=\"days\" class=\"form-control\" placeholder=\"Days\" value=\"{{ days }}\">
+      </div>
+      <div class=\"col-auto\">
+        <button class=\"btn btn-warning\" type=\"submit\">시뮬레이션 하기</button>
+      </div>
+    </form>
+    {% if simulation %}
+    <div class=\"table-responsive\">
+      <table class=\"table table-bordered\">
+        <thead>
+          <tr><th>Day</th><th>Predicted Close</th><th>Value</th><th>Profit</th></tr>
+        </thead>
+        <tbody>
+          {% for r in simulation %}
+          <tr>
+            <td>{{ r.day }}</td>
+            <td>{{ '{:.2f}'.format(r.predicted) }}</td>
+            <td>{{ '{:.2f}'.format(r.value) }}</td>
+            <td>{{ '{:.2f}'.format(r.profit) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    {% if trades %}
+    <h3 class=\"mt-3\">모의투자 거래내역</h3>
+    <ul>
+      {% for t in trades %}
+      <li>{{ t }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
     <h2 class=\"mt-4\">Average News Sentiment: {{ sentiment|round(3) }}</h2>
     <h2 class=\"mt-4\">Latest News</h2>
     <ul>
@@ -316,11 +371,16 @@ def index():
     return render_template_string(index_template, tickers=tickers, search=search, message=message)
 
 
-@bp.route('/stock/<ticker>')
+@bp.route('/stock/<ticker>', methods=['GET', 'POST'])
 @login_required
 def stock(ticker):
     period = request.args.get('period', '5d')
     chart_type = request.args.get('chart_type', 'line')
+    seed = 10000.0
+    days = 5
+    if request.method == 'POST':
+        seed = float(request.form.get('seed', 10000))
+        days = int(request.form.get('days', 5))
     try:
         stock = yf.Ticker(ticker)
         data = stock.history(period=period)
@@ -341,7 +401,9 @@ def stock(ticker):
         graph_html = pio.to_html(fig, full_html=False)
         news = fetch_news(ticker, stock)
         sentiment = analyze_sentiment(news)
-        preds = predict_prices(data, sentiment=sentiment)
+        preds = predict_prices(data, days=days, sentiment=sentiment)
+        simulation, trades = (run_simulation(data, preds, seed)
+                              if request.method == 'POST' else ([], []))
 
         return render_template_string(
             template,
@@ -353,6 +415,10 @@ def stock(ticker):
             predictions=preds,
             news=news,
             sentiment=sentiment,
+            simulation=simulation,
+            trades=trades,
+            seed=seed,
+            days=days,
             error=None,
         )
     except Exception as e:
@@ -366,6 +432,10 @@ def stock(ticker):
             predictions=[],
             news=[],
             sentiment=0.0,
+            simulation=[],
+            trades=[],
+            seed=seed,
+            days=days,
             error=str(e),
         )
 
