@@ -154,7 +154,6 @@ def register():
                 message = 'Username or email already exists.'
             finally:
                 conn.close()
-
     return render_template_string(register_template, message=message)
 
 
