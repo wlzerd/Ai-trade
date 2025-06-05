@@ -8,6 +8,7 @@ from flask import (
 import yfinance as yf
 import plotly.graph_objects as go
 import plotly.io as pio
+import feedparser
 
 from db import get_db
 from auth import login_required
@@ -32,6 +33,53 @@ def predict_prices(data, days=5):
         last += avg_change
         predictions.append(float(last))
     return predictions
+
+
+def fetch_news(ticker, stock):
+    """Return a list of recent news articles for the given ticker."""
+    news = []
+    try:
+        fetched = []
+        if hasattr(stock, "get_news"):
+            fetched = stock.get_news()
+        elif hasattr(stock, "news"):
+            fetched = stock.news
+
+        if hasattr(fetched, "to_dict"):
+            fetched = fetched.to_dict("records")
+
+        for item in list(fetched)[:5]:
+            title = item.get("title", "")
+            link = item.get("link") or item.get("canonicalUrl", {}).get("url")
+            if not link:
+                link = item.get("clickThroughUrl", {}).get("url")
+            publisher = item.get("publisher") or item.get("provider", {}).get(
+                "displayName"
+            )
+            if title and link:
+                news.append({"title": title, "link": link, "publisher": publisher})
+        if news:
+            return news
+    except Exception:
+        pass
+
+    # Fallback to Yahoo RSS feed if yfinance fails
+    try:
+        feed_url = (
+            f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
+        )
+        feed = feedparser.parse(feed_url)
+        for entry in feed.entries[:5]:
+            news.append(
+                {
+                    "title": entry.title,
+                    "link": entry.link,
+                    "publisher": entry.get("source", {}).get("title"),
+                }
+            )
+    except Exception:
+        pass
+    return news
 
 index_template = """
 <!doctype html>
@@ -213,29 +261,7 @@ def stock(ticker):
         fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
         preds = predict_prices(data)
-        news = []
-        try:
-            fetched = []
-            if hasattr(stock, 'get_news'):
-                fetched = stock.get_news()
-            elif hasattr(stock, 'news'):
-                fetched = stock.news
-
-            if hasattr(fetched, 'to_dict'):
-                fetched = fetched.to_dict('records')
-            items = list(fetched)[:5]
-            parsed = []
-            for item in items:
-                title = item.get('title', '')
-                link = item.get('link')
-                if not link:
-                    link = item.get('canonicalUrl', {}).get('url') or item.get('clickThroughUrl', {}).get('url')
-                publisher = item.get('publisher') or item.get('provider', {}).get('displayName')
-                if title and link:
-                    parsed.append({'title': title, 'link': link, 'publisher': publisher})
-            news = parsed
-        except Exception:
-            news = []
+        news = fetch_news(ticker, stock)
 
         return render_template_string(
             template,
