@@ -103,10 +103,26 @@ def send_verification_email(to_email, verify_url):
         return False
 
     msg = EmailMessage()
-    msg["Subject"] = "Email Verification"
+    msg["Subject"] = "Ai주식거래 사이트 이메일 인증"
     msg["From"] = user
     msg["To"] = to_email
-    msg.set_content(f"Please visit the following link to verify your account:\n{verify_url}")
+    msg.set_content(
+        f"다음 링크를 클릭하여 이메일 인증을 완료해주세요: {verify_url}",
+        subtype="plain",
+    )
+    msg.add_alternative(
+        f"""
+<!doctype html>
+<html lang=\"ko\">
+<body style=\"font-family:sans-serif;text-align:center;\">
+  <h2>회원가입을 축하합니다!</h2>
+  <p>아래 버튼을 눌러 이메일 인증을 완료해주세요.</p>
+  <a href=\"{verify_url}\" style=\"display:inline-block;padding:10px 20px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:4px;\">이메일 인증하기</a>
+</body>
+</html>
+""",
+        subtype="html",
+    )
 
     try:
         if use_tls:
