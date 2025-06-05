@@ -13,6 +13,9 @@ from flask import (
     url_for,
     render_template_string,
 )
+
+# Placeholder image used for social previews
+OG_IMAGE_URL = "https://via.placeholder.com/1200x630.png?text=Ai-Trade"
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from db import get_db
@@ -27,6 +30,11 @@ login_template = """
 <meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
 <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+<meta property=\"og:type\" content=\"website\">
+<meta property=\"og:title\" content=\"로그인 | Ai-Trade\">
+<meta property=\"og:description\" content=\"Ai-Trade 로그인 페이지\">
+<meta property=\"og:url\" content=\"{{ url_for('auth.login', _external=True) }}\">
+<meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
 <title>Login</title>
 </head>
 <body class=\"container py-5\">
@@ -53,6 +61,11 @@ register_template = """
 <meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
 <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+<meta property=\"og:type\" content=\"website\">
+<meta property=\"og:title\" content=\"회원가입 | Ai-Trade\">
+<meta property=\"og:description\" content=\"Ai-Trade 회원가입 페이지\">
+<meta property=\"og:url\" content=\"{{ url_for('auth.register', _external=True) }}\">
+<meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
 <title>Register</title>
 </head>
 <body class=\"container py-5\">
@@ -82,6 +95,11 @@ verify_template = """
 <meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
 <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+<meta property=\"og:type\" content=\"website\">
+<meta property=\"og:title\" content=\"이메일 인증 | Ai-Trade\">
+<meta property=\"og:description\" content=\"이메일 인증 안내 페이지\">
+<meta property=\"og:url\" content=\"{{ url_for('auth.login', _external=True) }}\">
+<meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
 <title>이메일 인증</title>
 </head>
 <body class=\"container py-5\">
