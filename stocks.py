@@ -66,44 +66,67 @@ index_template = """
 
 template = """
 <!doctype html>
-<title>Stock Data</title>
-{% if g.user %}
-<p>Logged in as {{ g.user['username'] }} | <a href="{{ url_for('auth.logout') }}">Logout</a></p>
-{% else %}
-<p><a href="{{ url_for('auth.login') }}">Login</a> | <a href="{{ url_for('auth.register') }}">Register</a></p>
-{% endif %}
-<h1>Stock Data for {{ ticker }}</h1>
-{% if error %}
-<p style='color: red;'>{{ error }}</p>
-{% else %}
-<form method="get">
-    Period:
-    <select name="period" onchange="this.form.submit()">
-        {% for p in ['5d', '1mo', '3mo', '6mo', '1y'] %}
-        <option value="{{ p }}" {% if p == period %}selected{% endif %}>{{ p }}</option>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+  <title>{{ ticker }} Data</title>
+</head>
+<body class=\"bg-light\">
+<nav class=\"navbar navbar-expand-lg navbar-dark bg-primary\">
+  <div class=\"container\">
+    <a class=\"navbar-brand\" href=\"{{ url_for('stocks.index') }}\">Ai-Trade</a>
+    <div class=\"d-flex\">
+      <span class=\"navbar-text me-3\">Logged in as {{ g.user['username'] }}</span>
+      <a class=\"btn btn-outline-light btn-sm\" href=\"{{ url_for('auth.logout') }}\">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class=\"container py-4\">
+  <h1 class=\"mb-4\">{{ ticker }} Data</h1>
+  {% if error %}
+  <div class=\"alert alert-danger\">{{ error }}</div>
+  {% else %}
+    <form method=\"get\" class=\"row gy-2 gx-2 align-items-center mb-3\">
+      <div class=\"col-auto\">
+        <select name=\"period\" class=\"form-select\" onchange=\"this.form.submit()\">
+          {% for p in ['5d', '1mo', '3mo', '6mo', '1y'] %}
+          <option value=\"{{ p }}\" {% if p == period %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class=\"col-auto\">
+        <select name=\"chart_type\" class=\"form-select\" onchange=\"this.form.submit()\">
+          <option value=\"line\" {% if chart_type == 'line' %}selected{% endif %}>Line</option>
+          <option value=\"candlestick\" {% if chart_type == 'candlestick' %}selected{% endif %}>Candlestick</option>
+        </select>
+      </div>
+    </form>
+    {{ graph|safe }}
+    <div class=\"table-responsive\">
+      <table class=\"table table-striped\">
+        <thead>
+          <tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr>
+        </thead>
+        <tbody>
+        {% for date, row in data.iterrows() %}
+          <tr>
+            <td>{{ date.date() }}</td>
+            <td>{{ '{:.2f}'.format(row['Open']) }}</td>
+            <td>{{ '{:.2f}'.format(row['High']) }}</td>
+            <td>{{ '{:.2f}'.format(row['Low']) }}</td>
+            <td>{{ '{:.2f}'.format(row['Close']) }}</td>
+            <td>{{ row['Volume']|int }}</td>
+          </tr>
         {% endfor %}
-    </select>
-    Chart Type:
-    <select name="chart_type" onchange="this.form.submit()">
-        <option value="line" {% if chart_type == 'line' %}selected{% endif %}>Line</option>
-        <option value="candlestick" {% if chart_type == 'candlestick' %}selected{% endif %}>Candlestick</option>
-    </select>
-</form>
-{{ graph|safe }}
-<table border="1">
-<tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr>
-{% for date, row in data.iterrows() %}
-<tr>
-<td>{{ date.date() }}</td>
-<td>{{ '{:.2f}'.format(row['Open']) }}</td>
-<td>{{ '{:.2f}'.format(row['High']) }}</td>
-<td>{{ '{:.2f}'.format(row['Low']) }}</td>
-<td>{{ '{:.2f}'.format(row['Close']) }}</td>
-<td>{{ row['Volume']|int }}</td>
-</tr>
-{% endfor %}
-</table>
-{% endif %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+</body>
+</html>
 """
 
 
@@ -154,7 +177,7 @@ def stock(ticker):
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close'))
 
-        fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price")
+        fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
 
         return render_template_string(template, ticker=ticker, data=data,
