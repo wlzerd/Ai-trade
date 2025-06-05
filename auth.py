@@ -1,4 +1,6 @@
 from functools import wraps
+import secrets
+
 from flask import (
     Blueprint,
     request,
@@ -16,29 +18,70 @@ bp = Blueprint('auth', __name__)
 
 login_template = """
 <!doctype html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\">
+<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
 <title>Login</title>
+</head>
+<body class=\"container py-5\">
 <h1>Login</h1>
-<form method="post">
-    <input name="username" placeholder="Username" />
-    <input name="password" type="password" placeholder="Password" />
-    <button type="submit">Login</button>
+<form method=\"post\" class=\"mb-3\">
+  <div class=\"mb-3\">
+    <input class=\"form-control\" name=\"username\" placeholder=\"Username\">
+  </div>
+  <div class=\"mb-3\">
+    <input class=\"form-control\" type=\"password\" name=\"password\" placeholder=\"Password\">
+  </div>
+  <button class=\"btn btn-primary\" type=\"submit\">Login</button>
 </form>
-{% if message %}<p style='color:red;'>{{ message }}</p>{% endif %}
-<p><a href="{{ url_for('auth.register') }}">Register</a></p>
-"""
+{% if message %}<div class='alert alert-danger'>{{ message }}</div>{% endif %}
+<p>Don't have an account? <a href='{{ url_for('auth.register') }}'>Register</a></p>
+</body>
+</html>
 
 register_template = """
 <!doctype html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\">
+<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
 <title>Register</title>
+</head>
+<body class=\"container py-5\">
 <h1>Register</h1>
-<form method="post">
-    <input name="username" placeholder="Username" />
-    <input name="password" type="password" placeholder="Password" />
-    <button type="submit">Register</button>
+<form method=\"post\" class=\"mb-3\">
+  <div class=\"mb-3\">
+    <input class=\"form-control\" name=\"username\" placeholder=\"Username\">
+  </div>
+  <div class=\"mb-3\">
+    <input class=\"form-control\" type=\"email\" name=\"email\" placeholder=\"Email\">
+  </div>
+  <div class=\"mb-3\">
+    <input class=\"form-control\" type=\"password\" name=\"password\" placeholder=\"Password\">
+  </div>
+  <button class=\"btn btn-primary\" type=\"submit\">Register</button>
 </form>
-{% if message %}<p style='color:red;'>{{ message }}</p>{% endif %}
-<p><a href="{{ url_for('auth.login') }}">Login</a></p>
+{% if message %}<div class='alert alert-danger'>{{ message }}</div>{% endif %}
+<p>Already have an account? <a href='{{ url_for('auth.login') }}'>Login</a></p>
+</body>
+</html>
 """
+
+verify_template = """
+<!doctype html>
+<html lang=\"en\">
+<head>
+<meta charset=\"utf-8\">
+<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+<title>Email Verification</title>
+</head>
+<body class=\"container py-5\">
+<h1>Email Verification</h1>
+<p>{{ message }}</p>
+<p><a href='{{ url_for('auth.login') }}'>Login</a></p>
+</body>
+</html>
 
 
 @bp.before_app_request
@@ -72,12 +115,12 @@ def login():
         user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
         conn.close()
         if user and check_password_hash(user['password_hash'], password):
-            session.clear()
-            session['user_id'] = user['id']
-            return redirect(url_for('stocks.index'))
-        else:
-            message = 'Invalid credentials.'
-    return render_template_string(login_template, message=message)
+            if not user['is_verified']:
+                message = 'Please verify your email before logging in.'
+            else:
+                session.clear()
+                session['user_id'] = user['id']
+                return redirect(url_for('stocks.index'))
 
 
 @bp.route('/register', methods=['GET', 'POST'])
@@ -85,26 +128,38 @@ def register():
     message = None
     if request.method == 'POST':
         username = request.form['username']
+        email = request.form['email']
         password = request.form['password']
-        if not username or not password:
-            message = 'Username and password required.'
+        if not username or not password or not email:
+            message = 'Username, email and password required.'
         else:
             conn = get_db()
             try:
+                token = secrets.token_urlsafe(16)
                 conn.execute(
-                    'INSERT INTO users (username, password_hash) VALUES (?, ?)',
-                    (username, generate_password_hash(password)),
+                    'INSERT INTO users (username, email, password_hash, verification_token) VALUES (?, ?, ?, ?)',
+                    (username, email, generate_password_hash(password), token),
                 )
                 conn.commit()
                 conn.close()
-                return redirect(url_for('auth.login'))
-            except Exception:
-                conn.close()
-                message = 'Username already exists.'
-    return render_template_string(register_template, message=message)
+                verify_url = url_for('auth.verify', token=token, _external=True)
+                message = f'Check your email and visit {verify_url} to verify your account.'
+                return render_template_string(verify_template, message=message)
 
 
-@bp.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('auth.login'))
+@bp.route('/verify/<token>')
+def verify(token):
+    conn = get_db()
+    user = conn.execute('SELECT * FROM users WHERE verification_token = ?', (token,)).fetchone()
+    if user:
+        conn.execute(
+            'UPDATE users SET is_verified = 1, verification_token = NULL WHERE id = ?',
+            (user['id'],),
+        )
+        conn.commit()
+        message = 'Email verified. You can now log in.'
+    else:
+        message = 'Invalid verification token.'
+    conn.close()
+    return render_template_string(verify_template, message=message)
+

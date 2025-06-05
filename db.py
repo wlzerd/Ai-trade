@@ -19,7 +19,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
-            password_hash TEXT
+            email TEXT UNIQUE,
+            password_hash TEXT,
+            is_verified INTEGER DEFAULT 0,
+            verification_token TEXT
         )
         '''
     )
