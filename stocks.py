@@ -205,27 +205,27 @@ index_template = """
   <meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
-  <title>Saved Stocks</title>
+  <title>저장된 종목</title>
 </head>
 <body class=\"bg-light\">
 <nav class=\"navbar navbar-expand-lg navbar-dark bg-primary\">
   <div class=\"container\">
     <a class=\"navbar-brand\" href=\"{{ url_for('stocks.index') }}\">Ai-Trade</a>
     <div class=\"d-flex\">
-      <span class=\"navbar-text me-3\">Logged in as {{ g.user['username'] }}</span>
-      <a class=\"btn btn-outline-light btn-sm\" href=\"{{ url_for('auth.logout') }}\">Logout</a>
+      <span class=\"navbar-text me-3\">로그인: {{ g.user['username'] }}</span>
+      <a class=\"btn btn-outline-light btn-sm\" href=\"{{ url_for('auth.logout') }}\">로그아웃</a>
     </div>
   </div>
 </nav>
 
 <div class=\"container py-4\">
-  <h1 class=\"mb-4\">Saved Tickers</h1>
+  <h1 class=\"mb-4\">저장된 티커</h1>
   <form method=\"post\" class=\"row gy-2 gx-2 align-items-center mb-3\">
     <div class=\"col-auto\">
-      <input name=\"ticker\" class=\"form-control\" placeholder=\"Add ticker\">
+      <input name=\"ticker\" class=\"form-control\" placeholder=\"티커 추가\">
     </div>
     <div class=\"col-auto\">
-      <button class=\"btn btn-success\" type=\"submit\">Add</button>
+        <button class=\"btn btn-success\" type=\"submit\">추가</button>
     </div>
   </form>
   {% if message %}
@@ -233,15 +233,15 @@ index_template = """
   {% endif %}
   <form method=\"get\" class=\"mb-3\">
     <div class=\"input-group\">
-      <input name=\"q\" class=\"form-control\" placeholder=\"Search\" value=\"{{ search }}\">
-      <button class=\"btn btn-outline-secondary\" type=\"submit\">Search</button>
+      <input name=\"q\" class=\"form-control\" placeholder=\"검색\" value=\"{{ search }}\">
+      <button class=\"btn btn-outline-secondary\" type=\"submit\">검색</button>
     </div>
   </form>
   <ul class=\"list-group\">
     {% for t in tickers %}
       <li class=\"list-group-item\"><a href=\"{{ url_for('stocks.stock', ticker=t) }}\">{{ t }}</a></li>
     {% else %}
-      <li class=\"list-group-item\">No tickers found.</li>
+      <li class=\"list-group-item\">저장된 티커가 없습니다.</li>
     {% endfor %}
   </ul>
 </div>
@@ -256,21 +256,21 @@ template = """
   <meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
-  <title>{{ ticker }} Data</title>
+  <title>{{ ticker }} 데이터</title>
 </head>
 <body class=\"bg-light\">
 <nav class=\"navbar navbar-expand-lg navbar-dark bg-primary\">
   <div class=\"container\">
     <a class=\"navbar-brand\" href=\"{{ url_for('stocks.index') }}\">Ai-Trade</a>
     <div class=\"d-flex\">
-      <span class=\"navbar-text me-3\">Logged in as {{ g.user['username'] }}</span>
-      <a class=\"btn btn-outline-light btn-sm\" href=\"{{ url_for('auth.logout') }}\">Logout</a>
+      <span class=\"navbar-text me-3\">로그인: {{ g.user['username'] }}</span>
+      <a class=\"btn btn-outline-light btn-sm\" href=\"{{ url_for('auth.logout') }}\">로그아웃</a>
     </div>
   </div>
 </nav>
 
 <div class=\"container py-4\">
-  <h1 class=\"mb-4\">{{ ticker }} Data</h1>
+  <h1 class=\"mb-4\">{{ ticker }} 데이터</h1>
   {% if error %}
   <div class=\"alert alert-danger\">{{ error }}</div>
   {% else %}
@@ -284,8 +284,8 @@ template = """
       </div>
       <div class=\"col-auto\">
         <select name=\"chart_type\" class=\"form-select\" onchange=\"this.form.submit()\">
-          <option value=\"line\" {% if chart_type == 'line' %}selected{% endif %}>Line</option>
-          <option value=\"candlestick\" {% if chart_type == 'candlestick' %}selected{% endif %}>Candlestick</option>
+          <option value=\"line\" {% if chart_type == 'line' %}selected{% endif %}>선 차트</option>
+          <option value=\"candlestick\" {% if chart_type == 'candlestick' %}selected{% endif %}>캔들스틱</option>
         </select>
       </div>
     </form>
@@ -293,7 +293,7 @@ template = """
     <div class=\"table-responsive\">
       <table class=\"table table-striped\">
         <thead>
-          <tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr>
+          <tr><th>날짜</th><th>시가</th><th>고가</th><th>저가</th><th>종가</th><th>거래량</th></tr>
         </thead>
         <tbody>
         {% for date, row in data.iterrows() %}
@@ -309,13 +309,13 @@ template = """
         </tbody>
       </table>
     </div>
-    <h2 class=\"mt-4\">Simulation</h2>
+    <h2 class=\"mt-4\">시뮬레이션</h2>
     <form method=\"post\" class=\"row gy-2 gx-2 align-items-center mb-3\">
       <div class=\"col-auto\">
-        <input name=\"seed\" class=\"form-control\" placeholder=\"Seed\" value=\"{{ seed }}\">
+        <input name=\"seed\" class=\"form-control\" placeholder=\"시드\" value=\"{{ seed }}\">
       </div>
       <div class=\"col-auto\">
-        <input name=\"days\" class=\"form-control\" placeholder=\"Days\" value=\"{{ days }}\">
+        <input name=\"days\" class=\"form-control\" placeholder=\"일수\" value=\"{{ days }}\">
       </div>
       <div class=\"col-auto\">
         <button class=\"btn btn-warning\" type=\"submit\">시뮬레이션 하기</button>
@@ -325,7 +325,7 @@ template = """
     <div class=\"table-responsive\">
       <table class=\"table table-bordered\">
         <thead>
-          <tr><th>Date</th><th>Action</th><th>Shares</th><th>Price</th><th>Value</th></tr>
+          <tr><th>날짜</th><th>구분</th><th>수량</th><th>가격</th><th>가치</th></tr>
         </thead>
         <tbody>
           {% for t in trades %}
@@ -344,13 +344,13 @@ template = """
       {{ profit_graph|safe }}
     </div>
     {% endif %}
-    <h2 class=\"mt-4\">Average News Sentiment: {{ sentiment|round(3) }}</h2>
-    <h2 class=\"mt-4\">Latest News</h2>
+    <h2 class=\"mt-4\">평균 뉴스 감정 점수: {{ sentiment|round(3) }}</h2>
+    <h2 class=\"mt-4\">최근 뉴스</h2>
     <ul>
       {% for n in news %}
       <li><a href="{{ n['link'] }}" target="_blank">{{ n['title']|truncate(100) }}</a>{% if n.get('publisher') %} ({{ n['publisher'] }}){% endif %}</li>
       {% else %}
-      <li>No recent news found.</li>
+      <li>최근 뉴스를 찾을 수 없습니다.</li>
       {% endfor %}
     </ul>
   {% endif %}
