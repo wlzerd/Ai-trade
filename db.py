@@ -36,7 +36,10 @@ def init_db():
         # upgrade existing table with missing columns
         cols = {row['name'] for row in conn.execute('PRAGMA table_info(users)')}
         if 'email' not in cols:
-            conn.execute('ALTER TABLE users ADD COLUMN email TEXT UNIQUE')
+            conn.execute('ALTER TABLE users ADD COLUMN email TEXT')
+            conn.execute(
+                'CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email)'
+            )
         if 'is_verified' not in cols:
             conn.execute('ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0')
         if 'verification_token' not in cols:
