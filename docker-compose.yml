@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data/stocks.db:/app/stocks.db
+    environment:
+      - FLASK_SECRET_KEY=changeme
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_USE_TLS=${MAIL_USE_TLS}
