@@ -13,6 +13,9 @@ pip install -r requirements.txt
 Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
 analysis and price predictions.
 Set `FLASK_SECRET_KEY` to configure the Flask session secret.
+To send verification emails during registration, configure SMTP settings:
+`MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` and optionally
+`MAIL_USE_TLS`.
 
 ## Usage
 
@@ -32,7 +35,7 @@ sentiment check to adjust the naive predictions.
 
 ## Login
 
-The application now supports user accounts. Visit `/register` to create an account and `/login` to sign in. Registration requires an email address. A verification link will be displayed after signing up; open the link to activate your account before logging in. Once logged in, you can add and view saved tickers. Use `/logout` to end the session.
+The application now supports user accounts. Visit `/register` to create an account and `/login` to sign in. Registration requires an email address. After signing up a verification link is emailed to you; open the link to activate your account before logging in. Once logged in, you can add and view saved tickers. Use `/logout` to end the session.
 
 ## Simulation
 
