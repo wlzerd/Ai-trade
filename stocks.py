@@ -15,6 +15,9 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import openai
 import pandas as pd
 
+# Placeholder image used for social previews
+OG_IMAGE_URL = "https://via.placeholder.com/1200x630.png?text=Ai-Trade"
+
 from db import get_db
 from auth import login_required
 
@@ -238,6 +241,11 @@ index_template = """
   <meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+  <meta property=\"og:type\" content=\"website\">
+  <meta property=\"og:title\" content=\"Ai-Trade\">
+  <meta property=\"og:description\" content=\"주식 데이터를 분석하고 시뮬레이션하는 웹 앱\">
+  <meta property=\"og:url\" content=\"{{ url_for('stocks.index', _external=True) }}\">
+  <meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
   <title>저장된 종목</title>
 </head>
 <body class=\"bg-light\">
@@ -289,6 +297,11 @@ template = """
   <meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+  <meta property=\"og:type\" content=\"article\">
+  <meta property=\"og:title\" content=\"{{ ticker }} 데이터 | Ai-Trade\">
+  <meta property=\"og:description\" content=\"주식 차트와 시뮬레이션 결과 제공\">
+  <meta property=\"og:url\" content=\"{{ url_for('stocks.stock', ticker=ticker, _external=True) }}\">
+  <meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
   <title>{{ ticker }} 데이터</title>
 </head>
 <body class=\"bg-light\">

@@ -28,6 +28,8 @@ python app.py
 The home page at `http://localhost:5000/` lets you save tickers and search existing ones.
 Click any saved ticker to view the interactive chart at `/stock/<ticker>`.
 
+Social platforms such as KakaoTalk or Discord display a preview card when you share a page link. Each page now includes Open Graph meta tags so the preview shows the site title, description and a placeholder image hosted on `via.placeholder.com`.
+
 Each stock page includes average sentiment from the latest news headlines.
 If an `OPENAI_API_KEY` environment variable is set, GPT is used to analyze
 the headlines and provide price forecasts. Otherwise VADER performs a simple
