@@ -151,7 +151,7 @@ template = """
     <h2 class=\"mt-4\">Latest News</h2>
     <ul>
       {% for n in news %}
-      <li><a href="{{ n['link'] }}" target="_blank">{{ n['title'] }}</a>{% if n['publisher'] %} ({{ n['publisher'] }}){% endif %}</li>
+      <li><a href="{{ n['link'] }}" target="_blank">{{ n['title'] }}</a>{% if n.get('publisher') %} ({{ n['publisher'] }}){% endif %}</li>
       {% else %}
       <li>No recent news found.</li>
       {% endfor %}
@@ -215,10 +215,16 @@ def stock(ticker):
         preds = predict_prices(data)
         news = []
         try:
+            fetched = []
             if hasattr(stock, 'get_news'):
-                news = stock.get_news()[:5]
+                fetched = stock.get_news()
             elif hasattr(stock, 'news'):
-                news = stock.news[:5]
+                fetched = stock.news
+
+            if hasattr(fetched, 'to_dict'):
+                fetched = fetched.to_dict('records')
+
+            news = list(fetched)[:5]
         except Exception:
             news = []
 
