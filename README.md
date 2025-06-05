@@ -20,3 +20,7 @@ python app.py
 
 The home page at `http://localhost:5000/` lets you save tickers and search existing ones.
 Click any saved ticker to view the interactive chart at `/stock/<ticker>`.
+
+## Login
+
+The application now supports user accounts. Visit `/register` to create an account and `/login` to sign in. Registration requires an email address. A verification link will be displayed after signing up; open the link to activate your account before logging in. Once logged in, you can add and view saved tickers. Use `/logout` to end the session.
