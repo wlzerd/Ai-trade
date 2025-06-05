@@ -223,7 +223,6 @@ def stock(ticker):
 
             if hasattr(fetched, 'to_dict'):
                 fetched = fetched.to_dict('records')
-
             items = list(fetched)[:5]
             parsed = []
             for item in items:
