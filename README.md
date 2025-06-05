@@ -12,6 +12,7 @@ pip install -r requirements.txt
 
 Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
 analysis and price predictions.
+Set `FLASK_SECRET_KEY` to configure the Flask session secret.
 
 ## Usage
 
