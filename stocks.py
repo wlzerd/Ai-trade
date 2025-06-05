@@ -224,7 +224,7 @@ def run_simulation(data, predictions, balance):
             'value': cash + shares * current_price,
         })
 
-    note = '' if bought else '예상 기간 동안 매수 신호가 없습니다.'
+    note = '' if bought else '지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.'
     return results, trades, note
 
 index_template = """
