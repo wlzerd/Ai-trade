@@ -16,7 +16,7 @@ import openai
 import pandas as pd
 
 # Placeholder image used for social previews
-OG_IMAGE_URL = "https://via.placeholder.com/1200x630.png?text=Ai-Trade"
+OG_IMAGE_URL = os.getenv("logo")
 
 from db import get_db
 from auth import login_required
