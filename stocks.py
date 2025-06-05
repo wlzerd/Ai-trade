@@ -161,6 +161,15 @@ def analyze_sentiment(news):
     return sum(scores) / len(scores)
 
 
+def sentiment_to_label(score):
+    """Return human readable sentiment label."""
+    if score > 0.1:
+        return "긍정적"
+    if score < -0.1:
+        return "부정적"
+    return "보통"
+
+
 def run_simulation(data, predictions, balance):
     """Return portfolio values and trade log using real dates."""
     if data is None or data.empty or 'Close' not in data or not predictions:
@@ -344,7 +353,7 @@ template = """
       {{ profit_graph|safe }}
     </div>
     {% endif %}
-    <h2 class=\"mt-4\">평균 뉴스 감정 점수: {{ sentiment|round(3) }}</h2>
+    <h2 class=\"mt-4\">평균 뉴스 감정: {{ sentiment_label }}</h2>
     <h2 class=\"mt-4\">최근 뉴스</h2>
     <ul>
       {% for n in news %}
@@ -416,6 +425,7 @@ def stock(ticker):
         graph_html = pio.to_html(fig, full_html=False)
         news = fetch_news(ticker, stock)
         sentiment = analyze_sentiment(news)
+        sentiment_label_val = sentiment_to_label(sentiment)
         preds = predict_prices(data, days=days, sentiment=sentiment)
         simulation, trades = (run_simulation(data, preds, seed)
                               if request.method == 'POST' else ([], []))
@@ -439,6 +449,7 @@ def stock(ticker):
             predictions=preds,
             news=news,
             sentiment=sentiment,
+            sentiment_label=sentiment_label_val,
             simulation=simulation,
             trades=trades,
             profit_graph=profit_graph_html,
@@ -457,6 +468,7 @@ def stock(ticker):
             predictions=[],
             news=[],
             sentiment=0.0,
+            sentiment_label=sentiment_to_label(0.0),
             simulation=[],
             trades=[],
             profit_graph='',
