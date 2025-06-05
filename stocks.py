@@ -14,6 +14,25 @@ from auth import login_required
 
 bp = Blueprint('stocks', __name__)
 
+
+def predict_prices(data, days=5):
+    """Naively predict future close prices using recent average change."""
+    if data is None or data.empty or 'Close' not in data:
+        return []
+
+    closes = data['Close']
+    if len(closes) < 2:
+        return []
+
+    diffs = closes.diff().dropna()
+    avg_change = diffs.tail(5).mean()
+    last = closes.iloc[-1]
+    predictions = []
+    for _ in range(days):
+        last += avg_change
+        predictions.append(float(last))
+    return predictions
+
 index_template = """
 <!doctype html>
 <html lang=\"en\">
@@ -123,6 +142,12 @@ template = """
         </tbody>
       </table>
     </div>
+    <h2 class=\"mt-4\">Predicted Close Prices (Next 5 days)</h2>
+    <ul>
+      {% for price in predictions %}
+      <li>Day {{ loop.index }}: {{ '{:.2f}'.format(price) }}</li>
+      {% endfor %}
+    </ul>
   {% endif %}
 </div>
 </body>
@@ -179,12 +204,15 @@ def stock(ticker):
 
         fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
+        preds = predict_prices(data)
 
         return render_template_string(template, ticker=ticker, data=data,
                                       period=period, chart_type=chart_type,
-                                      graph=graph_html, error=None)
+                                      graph=graph_html, predictions=preds,
+                                      error=None)
     except Exception as e:
         return render_template_string(template, ticker=ticker, data=None,
                                       period=period, chart_type=chart_type,
-                                      graph='', error=str(e))
+                                      graph='', predictions=[],
+                                      error=str(e))
 
