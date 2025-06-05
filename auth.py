@@ -1,6 +1,7 @@
 from functools import wraps
 import secrets
 
+# Authentication blueprint and templates
 from flask import (
     Blueprint,
     request,
