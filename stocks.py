@@ -151,7 +151,7 @@ template = """
     <h2 class=\"mt-4\">Latest News</h2>
     <ul>
       {% for n in news %}
-      <li><a href="{{ n['link'] }}" target="_blank">{{ n['title'] }}</a>{% if n.get('publisher') %} ({{ n['publisher'] }}){% endif %}</li>
+      <li><a href="{{ n['link'] }}" target="_blank">{{ n['title']|truncate(100) }}</a>{% if n.get('publisher') %} ({{ n['publisher'] }}){% endif %}</li>
       {% else %}
       <li>No recent news found.</li>
       {% endfor %}
@@ -223,8 +223,17 @@ def stock(ticker):
 
             if hasattr(fetched, 'to_dict'):
                 fetched = fetched.to_dict('records')
-
-            news = list(fetched)[:5]
+            items = list(fetched)[:5]
+            parsed = []
+            for item in items:
+                title = item.get('title', '')
+                link = item.get('link')
+                if not link:
+                    link = item.get('canonicalUrl', {}).get('url') or item.get('clickThroughUrl', {}).get('url')
+                publisher = item.get('publisher') or item.get('provider', {}).get('displayName')
+                if title and link:
+                    parsed.append({'title': title, 'link': link, 'publisher': publisher})
+            news = parsed
         except Exception:
             news = []
 
