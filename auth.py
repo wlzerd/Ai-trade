@@ -15,7 +15,7 @@ from flask import (
 )
 
 # Placeholder image used for social previews
-OG_IMAGE_URL = "https://via.placeholder.com/1200x630.png?text=Ai-Trade"
+OG_IMAGE_URL = os.getenv("logo")
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from db import get_db
