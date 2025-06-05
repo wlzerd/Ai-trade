@@ -148,6 +148,14 @@ template = """
       <li>Day {{ loop.index }}: {{ '{:.2f}'.format(price) }}</li>
       {% endfor %}
     </ul>
+    <h2 class=\"mt-4\">Latest News</h2>
+    <ul>
+      {% for n in news %}
+      <li><a href="{{ n['link'] }}" target="_blank">{{ n['title'] }}</a>{% if n['publisher'] %} ({{ n['publisher'] }}){% endif %}</li>
+      {% else %}
+      <li>No recent news found.</li>
+      {% endfor %}
+    </ul>
   {% endif %}
 </div>
 </body>
@@ -205,14 +213,36 @@ def stock(ticker):
         fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
         preds = predict_prices(data)
+        news = []
+        try:
+            if hasattr(stock, 'get_news'):
+                news = stock.get_news()[:5]
+            elif hasattr(stock, 'news'):
+                news = stock.news[:5]
+        except Exception:
+            news = []
 
-        return render_template_string(template, ticker=ticker, data=data,
-                                      period=period, chart_type=chart_type,
-                                      graph=graph_html, predictions=preds,
-                                      error=None)
+        return render_template_string(
+            template,
+            ticker=ticker,
+            data=data,
+            period=period,
+            chart_type=chart_type,
+            graph=graph_html,
+            predictions=preds,
+            news=news,
+            error=None,
+        )
     except Exception as e:
-        return render_template_string(template, ticker=ticker, data=None,
-                                      period=period, chart_type=chart_type,
-                                      graph='', predictions=[],
-                                      error=str(e))
+        return render_template_string(
+            template,
+            ticker=ticker,
+            data=None,
+            period=period,
+            chart_type=chart_type,
+            graph='',
+            predictions=[],
+            news=[],
+            error=str(e),
+        )
 
