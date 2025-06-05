@@ -7,7 +7,7 @@ from stocks import fetch_news, analyze_sentiment, predict_prices
 def simulate(ticker, balance=10000, days=5):
     """Run an adaptive trading simulation using predicted prices."""
     stock = yf.Ticker(ticker)
-    data = stock.history(period='1mo')
+    data = stock.history(period='6mo')
     if data.empty or 'Close' not in data:
         print('No data available for', ticker)
         return

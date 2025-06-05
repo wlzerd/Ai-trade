@@ -27,7 +27,7 @@ def gpt_predict_prices(data, days, sentiment):
         return None
     try:
         openai.api_key = key
-        closes = [round(float(c), 2) for c in data['Close'].tail(30).tolist()]
+        closes = [round(float(c), 2) for c in data['Close'].tail(180).tolist()]
         prompt = (
             "Predict the next "
             f"{days} closing prices based on this series: {closes} "
@@ -63,7 +63,7 @@ def predict_prices(data, days=5, sentiment=0.0):
         return []
 
     diffs = closes.diff().dropna()
-    avg_change = diffs.tail(5).mean()
+    avg_change = diffs.tail(180).mean()
     last = closes.iloc[-1]
     predictions = []
     for _ in range(days):
