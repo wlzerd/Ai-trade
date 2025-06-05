@@ -86,7 +86,6 @@ verify_template = """
 </html>
 """
 
-
 @bp.before_app_request
 def load_logged_in_user():
     user_id = session.get('user_id')
@@ -172,7 +171,6 @@ def verify(token):
         message = 'Invalid verification token.'
     conn.close()
     return render_template_string(verify_template, message=message)
-
 
 @bp.route('/logout')
 def logout():
