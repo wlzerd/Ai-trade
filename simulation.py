@@ -18,6 +18,7 @@ def simulate(ticker, balance=10000, days=5):
     if not predictions:
         print('Unable to generate predictions')
         return
+    no_buy_expected = not any(p > last_close for p in predictions)
 
     current_price = last_close
     cash = balance
@@ -25,7 +26,7 @@ def simulate(ticker, balance=10000, days=5):
     bought = False
     for i, price in enumerate(predictions, start=1):
         action = 'HOLD'
-        if price > current_price and cash >= current_price:
+        if price > current_price and price > last_close and cash >= current_price:
             shares_to_buy = cash / current_price
             cash -= shares_to_buy * current_price
             shares += shares_to_buy
@@ -42,7 +43,7 @@ def simulate(ticker, balance=10000, days=5):
     if shares > 0:
         cash += shares * current_price
         print(f'Final sell {shares:.2f} shares at {current_price:.2f}, total ${cash:.2f}')
-    if not bought:
+    if not bought or no_buy_expected:
         print('지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.')
 
 
