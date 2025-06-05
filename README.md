@@ -32,3 +32,19 @@ sentiment check to adjust the naive predictions.
 ## Login
 
 The application now supports user accounts. Visit `/register` to create an account and `/login` to sign in. Registration requires an email address. A verification link will be displayed after signing up; open the link to activate your account before logging in. Once logged in, you can add and view saved tickers. Use `/logout` to end the session.
+
+## Simulation
+
+A command line script `simulation.py` runs a simple buy-and-hold simulation using the predicted closing prices.
+Provide a ticker and optionally an initial balance and number of days:
+
+```bash
+python simulation.py AAPL 10000 5
+```
+
+This fetches recent data for `AAPL`, predicts the next 5 closing prices and shows the projected portfolio value if you purchased shares with the given balance.
+
+On each stock page you can also run this simulation in the browser. Enter a seed
+amount and number of days in the **시뮬레이션 하기** form to see a table of
+predicted portfolio value and a simple trade log.
+
