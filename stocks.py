@@ -16,31 +16,52 @@ bp = Blueprint('stocks', __name__)
 
 index_template = """
 <!doctype html>
-<title>Saved Stocks</title>
-{% if g.user %}
-<p>Logged in as {{ g.user['username'] }} | <a href="{{ url_for('auth.logout') }}">Logout</a></p>
-{% else %}
-<p><a href="{{ url_for('auth.login') }}">Login</a> | <a href="{{ url_for('auth.register') }}">Register</a></p>
-{% endif %}
-<h1>Saved Tickers</h1>
-<form method="post">
-    <input name="ticker" placeholder="Add ticker" />
-    <button type="submit">Add</button>
-</form>
-{% if message %}
-<p style="color:red;">{{ message }}</p>
-{% endif %}
-<form method="get">
-    <input name="q" placeholder="Search" value="{{ search }}" />
-    <button type="submit">Search</button>
-</form>
-<ul>
-{% for t in tickers %}
-    <li><a href="{{ url_for('stocks.stock', ticker=t) }}">{{ t }}</a></li>
-{% else %}
-    <li>No tickers found.</li>
-{% endfor %}
-</ul>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\">
+  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
+  <title>Saved Stocks</title>
+</head>
+<body class=\"bg-light\">
+<nav class=\"navbar navbar-expand-lg navbar-dark bg-primary\">
+  <div class=\"container\">
+    <a class=\"navbar-brand\" href=\"{{ url_for('stocks.index') }}\">Ai-Trade</a>
+    <div class=\"d-flex\">
+      <span class=\"navbar-text me-3\">Logged in as {{ g.user['username'] }}</span>
+      <a class=\"btn btn-outline-light btn-sm\" href=\"{{ url_for('auth.logout') }}\">Logout</a>
+    </div>
+  </div>
+</nav>
+
+<div class=\"container py-4\">
+  <h1 class=\"mb-4\">Saved Tickers</h1>
+  <form method=\"post\" class=\"row gy-2 gx-2 align-items-center mb-3\">
+    <div class=\"col-auto\">
+      <input name=\"ticker\" class=\"form-control\" placeholder=\"Add ticker\">
+    </div>
+    <div class=\"col-auto\">
+      <button class=\"btn btn-success\" type=\"submit\">Add</button>
+    </div>
+  </form>
+  {% if message %}
+  <div class=\"alert alert-danger\">{{ message }}</div>
+  {% endif %}
+  <form method=\"get\" class=\"mb-3\">
+    <div class=\"input-group\">
+      <input name=\"q\" class=\"form-control\" placeholder=\"Search\" value=\"{{ search }}\">
+      <button class=\"btn btn-outline-secondary\" type=\"submit\">Search</button>
+    </div>
+  </form>
+  <ul class=\"list-group\">
+    {% for t in tickers %}
+      <li class=\"list-group-item\"><a href=\"{{ url_for('stocks.stock', ticker=t) }}\">{{ t }}</a></li>
+    {% else %}
+      <li class=\"list-group-item\">No tickers found.</li>
+    {% endfor %}
+  </ul>
+</div>
+</body>
+</html>
 """
 
 template = """
