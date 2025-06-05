@@ -82,12 +82,12 @@ verify_template = """
 <meta charset=\"utf-8\">
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
 <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
-<title>Email Verification</title>
+<title>이메일 인증</title>
 </head>
 <body class=\"container py-5\">
-<h1>Email Verification</h1>
+<h1>이메일 인증</h1>
 <p>{{ message }}</p>
-<p><a href='{{ url_for('auth.login') }}'>Login</a></p>
+<p><a class=\"btn btn-primary\" href='{{ url_for('auth.login') }}'>로그인 하러가기</a></p>
 </body>
 </html>
 """
@@ -201,9 +201,9 @@ def register():
                 conn.commit()
                 verify_url = url_for('auth.verify', token=token, _external=True)
                 if send_verification_email(email, verify_url):
-                    message = 'A verification link has been sent to your email.'
+                    message = '인증 링크가 이메일로 전송되었습니다.'
                 else:
-                    message = f'Email could not be sent. Visit {verify_url} to verify your account.'
+                    message = f'이메일을 보내지 못했습니다. 다음 링크를 방문해 계정을 인증해주세요: {verify_url}'
                 return render_template_string(verify_template, message=message)
             except sqlite3.IntegrityError:
                 message = '이미 사용 중인 사용자 이름 또는 이메일입니다.'
@@ -222,7 +222,7 @@ def verify(token):
             (user['id'],),
         )
         conn.commit()
-        message = 'Email verified. You can now log in.'
+        message = '이메일 인증이 완료되었습니다. 이제 로그인 하실 수 있습니다.'
     else:
         message = '유효하지 않은 인증 토큰입니다.'
     conn.close()
