@@ -176,7 +176,9 @@ def run_simulation(data, predictions, balance):
         return [], [], ""
 
     last_date = data.index[-1]
-    current_price = float(data['Close'].iloc[-1])
+    start_price = float(data['Close'].iloc[-1])
+    current_price = start_price
+    no_buy_expected = not any(p > start_price for p in predictions)
     cash = balance
     shares = 0.0
     trades = []
@@ -187,8 +189,8 @@ def run_simulation(data, predictions, balance):
         date = (last_date + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
         action = None
 
-        if price > current_price and cash >= current_price:
-            # Buy as price expected to rise
+        if price > current_price and price > start_price and cash >= current_price:
+            # Buy as price expected to rise beyond the starting price
             shares_to_buy = cash / current_price
             cash -= shares_to_buy * current_price
             shares += shares_to_buy
@@ -224,7 +226,7 @@ def run_simulation(data, predictions, balance):
             'value': cash + shares * current_price,
         })
 
-    note = '' if bought else '지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.'
+    note = '' if bought and not no_buy_expected else '지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.'
     return results, trades, note
 
 index_template = """
