@@ -19,7 +19,8 @@ template = """
 <td>{{ '{:.2f}'.format(row['High']) }}</td>
 <td>{{ '{:.2f}'.format(row['Low']) }}</td>
 <td>{{ '{:.2f}'.format(row['Close']) }}</td>
-<td>{{ int(row['Volume']) }}</td>
+<td>{{ row['Volume']|int }}</td>
+
 </tr>
 {% endfor %}
 </table>
