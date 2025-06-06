@@ -3,6 +3,7 @@ import secrets
 import sqlite3
 import os
 import requests
+from dotenv import load_dotenv
 from flask import (
     Blueprint,
     request,
@@ -12,7 +13,7 @@ from flask import (
     url_for,
     render_template_string,
 )
-
+load_dotenv()
 # Placeholder image used for social previews
 OG_IMAGE_URL = os.getenv("logo")
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -113,6 +114,7 @@ def send_verification_email(to_email, verify_url):
     """Send a verification email with the given URL."""
     mailgun_key = os.environ.get("MAILGUN_API_KEY")
     mailgun_domain = os.environ.get("MAILGUN_DOMAIN")
+    print(mailgun_key, mailgun_domain)
     html_body = f"""
 <!doctype html>
 <html lang=\"ko\">
