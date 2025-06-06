@@ -4,3 +4,4 @@ plotly
 feedparser
 vaderSentiment
 openai
+requests
