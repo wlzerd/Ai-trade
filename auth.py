@@ -125,7 +125,6 @@ def send_verification_email(to_email, verify_url):
 """
     if not (mailgun_key and mailgun_domain):
         return False
-
     sender = os.environ.get("MAILGUN_FROM", f"no-reply@{mailgun_domain}")
     try:
         resp = requests.post(
