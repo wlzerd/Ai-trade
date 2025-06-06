@@ -14,7 +14,8 @@ import feedparser
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import openai
 import pandas as pd
-
+from dotenv import load_dotenv
+load_dotenv()
 # Placeholder image used for social previews
 OG_IMAGE_URL = os.getenv("logo")
 

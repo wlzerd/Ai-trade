@@ -5,3 +5,4 @@ feedparser
 vaderSentiment
 openai
 requests
+dotenv
