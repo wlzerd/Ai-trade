@@ -4,6 +4,7 @@ import sqlite3
 import smtplib
 from email.message import EmailMessage
 import os
+import requests
 from flask import (
     Blueprint,
     request,
@@ -112,6 +113,39 @@ verify_template = """
 
 def send_verification_email(to_email, verify_url):
     """Send a verification email with the given URL."""
+    mailgun_key = os.environ.get("MAILGUN_API_KEY")
+    mailgun_domain = os.environ.get("MAILGUN_DOMAIN")
+    html_body = f"""
+<!doctype html>
+<html lang=\"ko\">
+<body style=\"font-family:sans-serif;text-align:center;\">
+  <h2>회원가입을 축하합니다!</h2>
+  <p>아래 버튼을 눌러 이메일 인증을 완료해주세요.</p>
+  <a href=\"{verify_url}\" style=\"display:inline-block;padding:10px 20px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:4px;\">이메일 인증하기</a>
+</body>
+</html>
+"""
+    if mailgun_key and mailgun_domain:
+        sender = os.environ.get("MAILGUN_FROM", f"no-reply@{mailgun_domain}")
+        try:
+            resp = requests.post(
+                f"https://api.mailgun.net/v3/{mailgun_domain}/messages",
+                auth=("api", mailgun_key),
+                data={
+                    "from": sender,
+                    "to": [to_email],
+                    "subject": "Ai주식거래 사이트 이메일 인증",
+                    "text": f"다음 링크를 클릭하여 이메일 인증을 완료해주세요: {verify_url}",
+                    "html": html_body,
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
+            return True
+        except Exception as e:
+            print(f"Failed to send email via Mailgun: {e}")
+            return False
+
     server = os.environ.get("MAIL_SERVER")
     port = int(os.environ.get("MAIL_PORT", 587))
     user = os.environ.get("MAIL_USERNAME")
@@ -128,19 +162,7 @@ def send_verification_email(to_email, verify_url):
         f"다음 링크를 클릭하여 이메일 인증을 완료해주세요: {verify_url}",
         subtype="plain",
     )
-    msg.add_alternative(
-        f"""
-<!doctype html>
-<html lang=\"ko\">
-<body style=\"font-family:sans-serif;text-align:center;\">
-  <h2>회원가입을 축하합니다!</h2>
-  <p>아래 버튼을 눌러 이메일 인증을 완료해주세요.</p>
-  <a href=\"{verify_url}\" style=\"display:inline-block;padding:10px 20px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:4px;\">이메일 인증하기</a>
-</body>
-</html>
-""",
-        subtype="html",
-    )
+    msg.add_alternative(html_body, subtype="html")
 
     try:
         if use_tls:

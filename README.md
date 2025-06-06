@@ -16,6 +16,9 @@ Set `FLASK_SECRET_KEY` to configure the Flask session secret.
 To send verification emails during registration, configure SMTP settings:
 `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` and optionally
 `MAIL_USE_TLS`.
+Alternatively you can use Mailgun by setting `MAILGUN_API_KEY` and
+`MAILGUN_DOMAIN`. Specify `MAILGUN_FROM` if you want to customize the
+sender address.
 
 ## Usage
 
