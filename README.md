@@ -13,9 +13,9 @@ pip install -r requirements.txt
 Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
 analysis and price predictions.
 Set `FLASK_SECRET_KEY` to configure the Flask session secret.
-To send verification emails during registration, configure SMTP settings:
-`MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` and optionally
-`MAIL_USE_TLS`.
+To send verification emails during registration you must configure Mailgun by
+setting `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`. Specify `MAILGUN_FROM` if you
+want to customize the sender address.
 
 ## Usage
 
