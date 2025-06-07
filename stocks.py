@@ -91,7 +91,7 @@ def gpt_predict_prices(data, days, sentiment):
 
 
 def predict_prices(data, days=5, sentiment=0.0):
-    """Predict future close prices using GPT or naive averaging."""
+    """Predict future close prices using GPT or an AR(1) fallback."""
     if data is None or data.empty or 'Close' not in data:
         return []
 
@@ -100,20 +100,33 @@ def predict_prices(data, days=5, sentiment=0.0):
         return preds
 
     closes = data['Close']
-    if len(closes) < 2:
+    if len(closes) < 3:
         return []
 
     diffs = closes.diff().dropna()
-    avg_change = diffs.tail(180).mean()
-    last = closes.iloc[-1]
+    x = diffs.iloc[:-1]
+    y = diffs.iloc[1:]
+    if len(x) == 0:
+        return []
+
+    x_mean = x.mean()
+    y_mean = y.mean()
+    denom = ((x - x_mean) ** 2).sum()
+    slope = ((x - x_mean) * (y - y_mean)).sum() / denom if denom != 0 else 0.0
+    intercept = y_mean - slope * x_mean
+
+    current_price = closes.iloc[-1]
+    last_diff = diffs.iloc[-1]
     predictions = []
     for _ in range(days):
-        last += avg_change
+        next_diff = intercept + slope * last_diff
         if sentiment > 0.1:
-            last *= 1.01
+            next_diff *= 1.05
         elif sentiment < -0.1:
-            last *= 0.99
-        predictions.append(float(last))
+            next_diff *= 0.95
+        current_price += next_diff
+        predictions.append(float(current_price))
+        last_diff = next_diff
     return predictions
 
 
