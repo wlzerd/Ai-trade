@@ -224,6 +224,31 @@ def sentiment_to_label(score):
     return "보통"
 
 
+def gpt_explain_predictions(predictions, sentiment, news):
+    """Return GPT reasoning for the predicted prices if possible."""
+    key = os.getenv("OPENAI_API_KEY")
+    if not key or not predictions:
+        return ""
+    try:
+        openai.api_key = key
+        titles = "\n".join(n["title"] for n in news) if news else ""
+        prompt = (
+            "다음 종가 예측 값들을 참고하여 왜 이런 결과가 예상되는지 간단히 "
+            "한국어로 설명해줘."\
+            f"\n예측: {predictions}\n뉴스 감정: {sentiment:.3f}\n"\
+            f"제목들:\n{titles}"
+        )
+        resp = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60,
+            temperature=0,
+        )
+        return resp.choices[0].message["content"].strip()
+    except Exception:
+        return ""
+
+
 def run_simulation(data, predictions, balance):
     """Simulate adaptive trading based on predicted prices."""
     if data is None or data.empty or 'Close' not in data or not predictions:
@@ -439,6 +464,10 @@ template = """
     </div>
     <div class=\"mt-4\">
       {{ profit_graph|safe }}
+      <p class=\"mt-2 text-muted\">
+        예측된 종가: {% for p in predictions %}{{ '{:.2f}'.format(p) }}{% if not loop.last %}, {% endif %}{% endfor %}.<br>
+        {{ prediction_reason }}
+      </p>
     </div>
     {% endif %}
     {% if note %}
@@ -517,6 +546,12 @@ def stock(ticker):
         sentiment = analyze_sentiment(news)
         sentiment_label_val = sentiment_to_label(sentiment)
         preds = predict_prices(data, days=days, sentiment=sentiment)
+        reason = gpt_explain_predictions(preds, sentiment, news)
+        if not reason:
+            reason = (
+                f"최근 {sentiment_label_val} 뉴스 감정({sentiment:.3f})과 "
+                "과거 가격 추세를 고려해 예측했습니다."
+            )
         simulation, trades, note = (run_simulation(data, preds, seed)
                                     if request.method == 'POST' else ([], [], ''))
         profit_graph_html = ''
@@ -537,6 +572,7 @@ def stock(ticker):
             chart_type=chart_type,
             graph=graph_html,
             predictions=preds,
+            prediction_reason=reason,
             news=news,
             sentiment=sentiment,
             sentiment_label=sentiment_label_val,
@@ -557,6 +593,7 @@ def stock(ticker):
             chart_type=chart_type,
             graph='',
             predictions=[],
+            prediction_reason='',
             news=[],
             sentiment=0.0,
             sentiment_label=sentiment_to_label(0.0),
