@@ -1,6 +1,6 @@
 # Ai-trade
 
-This project provides a simple example of fetching stock data from Alpha Vantage and displaying it on the web. The `/stock/<ticker>` page now renders an interactive Plotly chart with selectable time periods and chart types (line or candlestick) similar to options found in trading apps.
+This project provides a simple example of fetching stock data from Finnhub and displaying it on the web. The `/stock/<ticker>` page now renders an interactive Plotly chart with selectable time periods and chart types (line or candlestick) similar to options found in trading apps.
 
 ## Requirements
 
@@ -12,9 +12,9 @@ pip install -r requirements.txt
 
 Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
 analysis and price predictions.
-Set `ALPHA_VANTAGE_KEY` to fetch stock prices and news from Alpha Vantage. If
-this key is not provided or the Alpha Vantage request fails, the application
-automatically falls back to the free Yahoo Finance RSS feed for headlines.
+Set `FINNHUB_API_KEY` to fetch stock prices and news from Finnhub. If this key
+is not provided or the Finnhub request fails, the application automatically
+falls back to the free Yahoo Finance RSS feed for headlines.
 Set `FLASK_SECRET_KEY` to configure the Flask session secret.
 To send verification emails during registration you must configure Mailgun by
 setting `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`. Specify `MAILGUN_FROM` if you

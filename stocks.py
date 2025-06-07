@@ -7,7 +7,6 @@ from flask import (
 )
 import os
 import re
-from alpha_vantage.timeseries import TimeSeries
 import requests
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -19,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 # Placeholder image used for social previews
 OG_IMAGE_URL = os.getenv("logo")
-ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY")
+FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 
 from db import get_db
 from auth import login_required
@@ -28,23 +27,38 @@ bp = Blueprint('stocks', __name__)
 
 
 def fetch_stock_history(ticker, period='5d'):
-    """Fetch historical stock prices from Alpha Vantage."""
-    if not ALPHA_VANTAGE_KEY:
-        raise ValueError("ALPHA_VANTAGE_KEY not set")
-    ts = TimeSeries(key=ALPHA_VANTAGE_KEY, output_format='pandas')
-    data, _ = ts.get_daily_adjusted(symbol=ticker, outputsize='full')
-    data = data.sort_index()
-    data = data.rename(columns={
-        '1. open': 'Open',
-        '2. high': 'High',
-        '3. low': 'Low',
-        '4. close': 'Close',
-        '6. volume': 'Volume',
-    })
-    data = data[['Open', 'High', 'Low', 'Close', 'Volume']]
-    days_map = {'5d': 5, '1mo': 22, '3mo': 66, '6mo': 132, '1y': 264}
+    """Fetch historical stock prices from Finnhub."""
+    if not FINNHUB_API_KEY:
+        raise ValueError("FINNHUB_API_KEY not set")
+
+    end = int(pd.Timestamp.utcnow().timestamp())
+    start = int((pd.Timestamp.utcnow() - pd.Timedelta(days=365)).timestamp())
+    params = {
+        "symbol": ticker,
+        "resolution": "D",
+        "from": start,
+        "to": end,
+        "token": FINNHUB_API_KEY,
+    }
+    resp = requests.get("https://finnhub.io/api/v1/stock/candle", params=params, timeout=10)
+    data = resp.json()
+    if data.get("s") != "ok":
+        raise ValueError("Failed to fetch data from Finnhub")
+
+    df = pd.DataFrame(
+        {
+            "Open": data["o"],
+            "High": data["h"],
+            "Low": data["l"],
+            "Close": data["c"],
+            "Volume": data["v"],
+        },
+        index=pd.to_datetime(data["t"], unit="s"),
+    )
+    df = df.sort_index()
+    days_map = {"5d": 5, "1mo": 22, "3mo": 66, "6mo": 132, "1y": 264}
     days = days_map.get(period, 5)
-    return data.tail(days)
+    return df.tail(days)
 
 
 def gpt_predict_prices(data, days, sentiment):
@@ -105,24 +119,25 @@ def predict_prices(data, days=5, sentiment=0.0):
 def fetch_news(ticker):
     """Return a list of recent news articles for the given ticker.
 
-    Uses Alpha Vantage's ``NEWS_SENTIMENT`` endpoint when an ``ALPHA_VANTAGE_KEY``
-    is configured. If the key is missing or the request fails, headlines are
+    Uses Finnhub's company news endpoint when a ``FINNHUB_API_KEY`` is
+    configured. If the key is missing or the request fails, headlines are
     retrieved from the Yahoo Finance RSS feed instead.
     """
     news = []
-    if ALPHA_VANTAGE_KEY:
+    if FINNHUB_API_KEY:
         try:
+            today = pd.Timestamp.utcnow().date()
+            start = (today - pd.Timedelta(days=7)).strftime("%Y-%m-%d")
             params = {
-                "function": "NEWS_SENTIMENT",
-                "tickers": ticker,
-                "sort": "LATEST",
-                "limit": 5,
-                "apikey": ALPHA_VANTAGE_KEY,
+                "symbol": ticker,
+                "from": start,
+                "to": today.strftime("%Y-%m-%d"),
+                "token": FINNHUB_API_KEY,
             }
-            resp = requests.get("https://www.alphavantage.co/query", params=params, timeout=10)
+            resp = requests.get("https://finnhub.io/api/v1/company-news", params=params, timeout=10)
             data = resp.json()
-            for item in data.get("feed", [])[:5]:
-                title = item.get("title", "")
+            for item in data[:5]:
+                title = item.get("headline", "")
                 link = item.get("url")
                 publisher = item.get("source")
                 if title and link:
@@ -132,7 +147,7 @@ def fetch_news(ticker):
         except Exception:
             pass
 
-    # Fallback to Yahoo RSS feed if Alpha Vantage fails
+    # Fallback to Yahoo RSS feed if Finnhub request fails
     try:
         feed_url = (
             f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
