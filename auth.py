@@ -31,8 +31,8 @@ login_template = """
 <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
 <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css\" rel=\"stylesheet\">
 <meta property=\"og:type\" content=\"website\">
-<meta property=\"og:title\" content=\"로그인 | Ai-Trade\">
-<meta property=\"og:description\" content=\"Ai-Trade 로그인 페이지\">
+<meta property=\"og:title\" content=\"로그인 | 주식 ai 도구\">
+<meta property=\"og:description\" content=\"주식에 대한 정보를 쉽고 간편하게 StockInfoAI으로!\">
 <meta property=\"og:url\" content=\"{{ url_for('auth.login', _external=True) }}\">
 <meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
 <title>Login</title>
@@ -186,7 +186,7 @@ def login():
                 return redirect(url_for('stocks.index'))
         else:
             message = '잘못된 사용자 이름 또는 비밀번호입니다.'
-    return render_template_string(login_template, message=message)
+    return render_template_string(login_template, message=message,OG_IMAGE_URL=OG_IMAGE_URL)
 
 
 @bp.route('/register', methods=['GET', 'POST'])
