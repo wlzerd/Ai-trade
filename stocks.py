@@ -67,7 +67,7 @@ def gpt_predict_prices(data, days, sentiment):
     if not key or data is None or data.empty or 'Close' not in data:
         return None
     try:
-        openai.api_key = key
+        client = openai.OpenAI(api_key=key)
         closes = [round(float(c), 2) for c in data['Close'].tail(180).tolist()]
         prompt = (
             "Predict the next "
@@ -75,7 +75,7 @@ def gpt_predict_prices(data, days, sentiment):
             f"and an average news sentiment of {sentiment:.3f}. "
             "Respond with numbers only."
         )
-        resp = openai.ChatCompletion.create(
+        resp = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
@@ -183,13 +183,13 @@ def gpt_sentiment(news):
     if not key or not news:
         return None
     try:
-        openai.api_key = key
+        client = openai.OpenAI(api_key=key)
         text = "\n".join(n["title"] for n in news)
         prompt = (
             "Give a single sentiment score between -1 and 1 for these headlines:"\
             f"\n{text}\nScore:"
         )
-        resp = openai.ChatCompletion.create(
+        resp = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
@@ -230,7 +230,7 @@ def gpt_explain_predictions(predictions, sentiment, news):
     if not key or not predictions:
         return ""
     try:
-        openai.api_key = key
+        client = openai.OpenAI(api_key=key)
         titles = "\n".join(n["title"] for n in news) if news else ""
         prompt = (
             "다음 종가 예측 값들을 참고하여 왜 이런 결과가 예상되는지 간단히 "
@@ -238,7 +238,7 @@ def gpt_explain_predictions(predictions, sentiment, news):
             f"\n예측: {predictions}\n뉴스 감정: {sentiment:.3f}\n"\
             f"제목들:\n{titles}"
         )
-        resp = openai.ChatCompletion.create(
+        resp = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=60,
