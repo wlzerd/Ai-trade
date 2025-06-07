@@ -1,18 +1,19 @@
 import sys
-import yfinance as yf
-
-from stocks import fetch_news, analyze_sentiment, predict_prices
-
+from stocks import (
+    fetch_news,
+    analyze_sentiment,
+    predict_prices,
+    fetch_stock_history,
+)
 
 def simulate(ticker, balance=10000, days=5):
     """Run an adaptive trading simulation using predicted prices."""
-    stock = yf.Ticker(ticker)
-    data = stock.history(period='6mo')
+    data = fetch_stock_history(ticker, period='6mo')
     if data.empty or 'Close' not in data:
         print('No data available for', ticker)
         return
     last_close = float(data['Close'].iloc[-1])
-    news = fetch_news(ticker, stock)
+    news = fetch_news(ticker)
     sentiment = analyze_sentiment(news)
     predictions = predict_prices(data, days=days, sentiment=sentiment)
     if not predictions:

@@ -1,5 +1,5 @@
 Flask
-yfinance
+alpha_vantage
 plotly
 feedparser
 vaderSentiment
