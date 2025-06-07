@@ -17,7 +17,7 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 # Placeholder image used for social previews
-OG_IMAGE_URL = os.getenv("logo")
+OG_IMAGE_URL = os.getenv("LOGO")
 FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
 
 from db import get_db
