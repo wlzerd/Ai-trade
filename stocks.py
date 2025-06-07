@@ -17,7 +17,7 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 # Placeholder image used for social previews
-OG_IMAGE_URL = os.getenv("logo")
+OG_IMAGE_URL = os.getenv("LOGO")
 
 from db import get_db
 from auth import login_required
@@ -439,6 +439,7 @@ def index():
 @bp.route('/stock/<ticker>', methods=['GET', 'POST'])
 @login_required
 def stock(ticker):
+    ticker = ticker.strip().upper()
     period = request.args.get('period', '5d')
     chart_type = request.args.get('chart_type', 'line')
     seed = 10000.0
