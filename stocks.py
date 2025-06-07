@@ -469,7 +469,7 @@ template = """
       {% endif %}
       <p class=\"mt-2 text-muted\">
         예측된 종가: {% for p in predictions %}{{ '{:.2f}'.format(p) }}{% if not loop.last %}, {% endif %}{% endfor %}.<br>
-        {{ prediction_reason }}
+        {% if simulation %}{{ prediction_reason }}{% endif %}
       </p>
     </div>
     {% if note %}
