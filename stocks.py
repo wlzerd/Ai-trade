@@ -7,7 +7,8 @@ from flask import (
 )
 import os
 import re
-import yfinance as yf
+from alpha_vantage.timeseries import TimeSeries
+import requests
 import plotly.graph_objects as go
 import plotly.io as pio
 import feedparser
@@ -17,12 +18,33 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 # Placeholder image used for social previews
-OG_IMAGE_URL = os.getenv("LOGO")
+OG_IMAGE_URL = os.getenv("logo")
+ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY")
 
 from db import get_db
 from auth import login_required
 
 bp = Blueprint('stocks', __name__)
+
+
+def fetch_stock_history(ticker, period='5d'):
+    """Fetch historical stock prices from Alpha Vantage."""
+    if not ALPHA_VANTAGE_KEY:
+        raise ValueError("ALPHA_VANTAGE_KEY not set")
+    ts = TimeSeries(key=ALPHA_VANTAGE_KEY, output_format='pandas')
+    data, _ = ts.get_daily_adjusted(symbol=ticker, outputsize='full')
+    data = data.sort_index()
+    data = data.rename(columns={
+        '1. open': 'Open',
+        '2. high': 'High',
+        '3. low': 'Low',
+        '4. close': 'Close',
+        '6. volume': 'Volume',
+    })
+    data = data[['Open', 'High', 'Low', 'Close', 'Volume']]
+    days_map = {'5d': 5, '1mo': 22, '3mo': 66, '6mo': 132, '1y': 264}
+    days = days_map.get(period, 5)
+    return data.tail(days)
 
 
 def gpt_predict_prices(data, days, sentiment):
@@ -80,35 +102,32 @@ def predict_prices(data, days=5, sentiment=0.0):
     return predictions
 
 
-def fetch_news(ticker, stock):
+def fetch_news(ticker):
     """Return a list of recent news articles for the given ticker."""
     news = []
-    try:
-        fetched = []
-        if hasattr(stock, "get_news"):
-            fetched = stock.get_news()
-        elif hasattr(stock, "news"):
-            fetched = stock.news
+    if ALPHA_VANTAGE_KEY:
+        try:
+            params = {
+                "function": "NEWS_SENTIMENT",
+                "tickers": ticker,
+                "sort": "LATEST",
+                "limit": 5,
+                "apikey": ALPHA_VANTAGE_KEY,
+            }
+            resp = requests.get("https://www.alphavantage.co/query", params=params, timeout=10)
+            data = resp.json()
+            for item in data.get("feed", [])[:5]:
+                title = item.get("title", "")
+                link = item.get("url")
+                publisher = item.get("source")
+                if title and link:
+                    news.append({"title": title, "link": link, "publisher": publisher})
+            if news:
+                return news
+        except Exception:
+            pass
 
-        if hasattr(fetched, "to_dict"):
-            fetched = fetched.to_dict("records")
-
-        for item in list(fetched)[:5]:
-            title = item.get("title", "")
-            link = item.get("link") or item.get("canonicalUrl", {}).get("url")
-            if not link:
-                link = item.get("clickThroughUrl", {}).get("url")
-            publisher = item.get("publisher") or item.get("provider", {}).get(
-                "displayName"
-            )
-            if title and link:
-                news.append({"title": title, "link": link, "publisher": publisher})
-        if news:
-            return news
-    except Exception:
-        pass
-
-    # Fallback to Yahoo RSS feed if yfinance fails
+    # Fallback to Yahoo RSS feed if Alpha Vantage fails
     try:
         feed_url = (
             f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
@@ -439,7 +458,6 @@ def index():
 @bp.route('/stock/<ticker>', methods=['GET', 'POST'])
 @login_required
 def stock(ticker):
-    ticker = ticker.strip().upper()
     period = request.args.get('period', '5d')
     chart_type = request.args.get('chart_type', 'line')
     seed = 10000.0
@@ -448,8 +466,7 @@ def stock(ticker):
         seed = float(request.form.get('seed', 10000))
         days = int(request.form.get('days', 5))
     try:
-        stock = yf.Ticker(ticker)
-        data = stock.history(period=period)
+        data = fetch_stock_history(ticker, period=period)
         if data.empty:
             raise ValueError("No data found for ticker")
 
@@ -465,7 +482,7 @@ def stock(ticker):
 
         fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
         graph_html = pio.to_html(fig, full_html=False)
-        news = fetch_news(ticker, stock)
+        news = fetch_news(ticker)
         sentiment = analyze_sentiment(news)
         sentiment_label_val = sentiment_to_label(sentiment)
         preds = predict_prices(data, days=days, sentiment=sentiment)
