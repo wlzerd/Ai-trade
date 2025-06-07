@@ -80,7 +80,7 @@ def gpt_predict_prices(data, days, sentiment):
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
         )
-        text = resp.choices[0].message["content"]
+        text = resp.choices[0].message.content
         nums = re.findall(r"-?\d+\.\d+|-?\d+", text)
         out = [float(n) for n in nums][:days]
         if len(out) == days:
@@ -194,7 +194,7 @@ def gpt_sentiment(news):
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
         )
-        out = resp.choices[0].message["content"].strip()
+        out = resp.choices[0].message.content.strip()
         match = re.search(r"-?\d+\.\d+|-?\d+", out)
         if match:
             return float(match.group())
@@ -244,7 +244,7 @@ def gpt_explain_predictions(predictions, sentiment, news):
             max_tokens=60,
             temperature=0,
         )
-        return resp.choices[0].message["content"].strip()
+        return resp.choices[0].message.content.strip()
     except Exception:
         return ""
 
