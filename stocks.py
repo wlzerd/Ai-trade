@@ -43,7 +43,7 @@ def fetch_stock_history(ticker, period='5d'):
     resp = requests.get("https://finnhub.io/api/v1/stock/candle", params=params, timeout=10)
     data = resp.json()
     if data.get("s") != "ok":
-        raise ValueError("Failed to fetch data from Finnhub")
+        raise ValueError(f"Finnhub error: {data}")
 
     df = pd.DataFrame(
         {

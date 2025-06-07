@@ -15,6 +15,8 @@ analysis and price predictions.
 Set `FINNHUB_API_KEY` to fetch stock prices and news from Finnhub. If this key
 is not provided or the Finnhub request fails, the application automatically
 falls back to the free Yahoo Finance RSS feed for headlines.
+This variable must be set in your environment (or passed through Docker Compose)
+before starting the application or container.
 Set `FLASK_SECRET_KEY` to configure the Flask session secret.
 To send verification emails during registration you must configure Mailgun by
 setting `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`. Specify `MAILGUN_FROM` if you
