@@ -2,6 +2,6 @@ Flask
 plotly
 feedparser
 vaderSentiment
-openai
+openai>=1.0.0
 requests
 dotenv
