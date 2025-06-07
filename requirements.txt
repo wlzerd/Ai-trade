@@ -5,3 +5,4 @@ vaderSentiment
 openai
 requests
 dotenv
+pandas
