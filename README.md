@@ -12,7 +12,9 @@ pip install -r requirements.txt
 
 Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
 analysis and price predictions.
-Set `ALPHA_VANTAGE_KEY` to fetch stock prices and news from Alpha Vantage.
+Set `ALPHA_VANTAGE_KEY` to fetch stock prices and news from Alpha Vantage. If
+this key is not provided or the Alpha Vantage request fails, the application
+automatically falls back to the free Yahoo Finance RSS feed for headlines.
 Set `FLASK_SECRET_KEY` to configure the Flask session secret.
 To send verification emails during registration you must configure Mailgun by
 setting `MAILGUN_API_KEY` and `MAILGUN_DOMAIN`. Specify `MAILGUN_FROM` if you
