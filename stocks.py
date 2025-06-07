@@ -40,7 +40,9 @@ def fetch_stock_history(ticker, period='5d'):
     params = {"adjusted": "true", "sort": "asc", "apiKey": POLYGON_API_KEY}
     resp = requests.get(url, params=params, timeout=10)
     data = resp.json()
-    if data.get("status") != "OK" or not data.get("results"):
+    # Polygon sometimes returns a "DELAYED" status even when data is valid,
+    # so treat it the same as "OK" when results are present.
+    if data.get("status") not in ("OK", "DELAYED") or not data.get("results"):
         raise ValueError(f"Polygon error: {data}")
 
     results = data.get("results", [])
