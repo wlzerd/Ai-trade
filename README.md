@@ -1,6 +1,6 @@
 # Ai-trade
 
-This project provides a simple example of fetching stock data from Finnhub and displaying it on the web. The `/stock/<ticker>` page now renders an interactive Plotly chart with selectable time periods and chart types (line or candlestick) similar to options found in trading apps.
+This project provides a simple example of fetching stock data from Polygon.io and displaying it on the web. The `/stock/<ticker>` page now renders an interactive Plotly chart with selectable time periods and chart types (line or candlestick) similar to options found in trading apps.
 
 ## Requirements
 
@@ -12,8 +12,8 @@ pip install -r requirements.txt
 
 Set `OPENAI_API_KEY` in your environment to enable GPT-powered sentiment
 analysis and price predictions.
-Set `FINNHUB_API_KEY` to fetch stock prices and news from Finnhub. If this key
-is not provided or the Finnhub request fails, the application automatically
+Set `POLYGON_API_KEY` to fetch stock prices and news from Polygon.io. If this
+key is not provided or the Polygon request fails, the application automatically
 falls back to the free Yahoo Finance RSS feed for headlines.
 This variable must be set in your environment (or passed through Docker Compose)
 before starting the application or container.
