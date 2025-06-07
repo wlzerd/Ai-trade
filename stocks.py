@@ -462,14 +462,16 @@ template = """
         </tbody>
       </table>
     </div>
+    {% endif %}
     <div class=\"mt-4\">
+      {% if profit_graph %}
       {{ profit_graph|safe }}
+      {% endif %}
       <p class=\"mt-2 text-muted\">
         예측된 종가: {% for p in predictions %}{{ '{:.2f}'.format(p) }}{% if not loop.last %}, {% endif %}{% endfor %}.<br>
         {{ prediction_reason }}
       </p>
     </div>
-    {% endif %}
     {% if note %}
     <div class=\"alert alert-info mt-3\">{{ note }}</div>
     {% endif %}
