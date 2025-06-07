@@ -15,7 +15,7 @@ from flask import (
 )
 load_dotenv()
 # Placeholder image used for social previews
-OG_IMAGE_URL = os.getenv("logo")
+OG_IMAGE_URL = os.getenv("LOGO")
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from db import get_db
@@ -33,7 +33,7 @@ login_template = """
 <meta property=\"og:type\" content=\"website\">
 <meta property=\"og:title\" content=\"로그인 | 주식 ai 도구\">
 <meta property=\"og:description\" content=\"주식에 대한 정보를 쉽고 간편하게 StockInfoAI으로!\">
-<meta property=\"og:url\" content=\"{{ url_for('auth.login', _external=True) }}\">
+<meta property=\"og:url\" content=\"{{ url_for('auth.login', _external=True, _scheme='https') }}\">
 <meta property=\"og:image\" content=\"{{ OG_IMAGE_URL }}\">
 <title>Login</title>
 </head>
