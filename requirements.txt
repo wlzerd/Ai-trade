@@ -1,5 +1,4 @@
 Flask
-alpha_vantage
 plotly
 feedparser
 vaderSentiment
