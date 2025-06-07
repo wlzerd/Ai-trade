@@ -103,7 +103,12 @@ def predict_prices(data, days=5, sentiment=0.0):
 
 
 def fetch_news(ticker):
-    """Return a list of recent news articles for the given ticker."""
+    """Return a list of recent news articles for the given ticker.
+
+    Uses Alpha Vantage's ``NEWS_SENTIMENT`` endpoint when an ``ALPHA_VANTAGE_KEY``
+    is configured. If the key is missing or the request fails, headlines are
+    retrieved from the Yahoo Finance RSS feed instead.
+    """
     news = []
     if ALPHA_VANTAGE_KEY:
         try:
