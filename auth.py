@@ -114,7 +114,6 @@ def send_verification_email(to_email, verify_url):
     """Send a verification email with the given URL."""
     mailgun_key = os.environ.get("MAILGUN_API_KEY")
     mailgun_domain = os.environ.get("MAILGUN_DOMAIN")
-    print(mailgun_key, mailgun_domain)
     html_body = f"""
 <!doctype html>
 <html lang=\"ko\">
