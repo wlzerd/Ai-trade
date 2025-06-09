@@ -467,10 +467,12 @@ template = """
       {% if profit_graph %}
       {{ profit_graph|safe }}
       {% endif %}
+      {% if simulation %}
       <p class=\"mt-2 text-muted\">
         예측된 종가: {% for p in predictions %}{{ '{:.2f}'.format(p) }}{% if not loop.last %}, {% endif %}{% endfor %}.<br>
-        {% if simulation %}{{ prediction_reason }}{% endif %}
+        {{ prediction_reason }}
       </p>
+      {% endif %}
     </div>
     {% if note %}
     <div class=\"alert alert-info mt-3\">{{ note }}</div>
@@ -558,6 +560,8 @@ def stock(ticker):
                                     if request.method == 'POST' else ([], [], ''))
         profit_graph_html = ''
         if simulation:
+            preds = predict_prices(data, days=days, sentiment=sentiment)
+            reason = gpt_explain_predictions(preds, sentiment, news)
             fig2 = go.Figure()
             fig2.add_trace(go.Scatter(x=[r['date'] for r in simulation],
                                       y=[r['value'] for r in simulation],
