@@ -40,29 +40,33 @@ let offset = 0;
 let scale = 1;
 const canvas = document.getElementById('chart');
 const ctx = canvas.getContext('2d');
+const paddingRight = 50;
+const paddingBottom = 20;
 
 function draw(){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const chartWidth = canvas.width - paddingRight;
+    const chartHeight = canvas.height - paddingBottom;
     const min = Math.min(...lows);
     const max = Math.max(...highs);
     const range = max - min || 1;
-    const step = canvas.width / (dates.length * scale);
+    const step = chartWidth / (dates.length * scale);
     if(chartType === 'line'){
         ctx.strokeStyle = 'blue';
         ctx.beginPath();
         closes.forEach((c,i)=>{
             const x = (i - offset) * step;
-            const y = canvas.height - ((c - min) / range) * canvas.height;
+            const y = chartHeight - ((c - min) / range) * chartHeight;
             if(i===0){ctx.moveTo(x,y);}else{ctx.lineTo(x,y);}
         });
         ctx.stroke();
     }else{
         closes.forEach((c,i)=>{
             const x = (i - offset) * step;
-            const highY = canvas.height - ((highs[i]-min)/range)*canvas.height;
-            const lowY = canvas.height - ((lows[i]-min)/range)*canvas.height;
-            const openY = canvas.height - ((opens[i]-min)/range)*canvas.height;
-            const closeY = canvas.height - ((closes[i]-min)/range)*canvas.height;
+            const highY = chartHeight - ((highs[i]-min)/range)*chartHeight;
+            const lowY = chartHeight - ((lows[i]-min)/range)*chartHeight;
+            const openY = chartHeight - ((opens[i]-min)/range)*chartHeight;
+            const closeY = chartHeight - ((closes[i]-min)/range)*chartHeight;
             ctx.strokeStyle = 'black';
             ctx.beginPath();
             ctx.moveTo(x, highY);
@@ -73,6 +77,33 @@ function draw(){
             const rectH = Math.abs(openY - closeY) || 1;
             ctx.fillRect(x - step*0.3, rectY, step*0.6, rectH);
         });
+    }
+    // axes
+    ctx.strokeStyle = '#000';
+    ctx.beginPath();
+    ctx.moveTo(chartWidth, 0);
+    ctx.lineTo(chartWidth, chartHeight);
+    ctx.moveTo(0, chartHeight);
+    ctx.lineTo(chartWidth, chartHeight);
+    ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const ticks = 4;
+    for(let i=0;i<=ticks;i++){
+        const price = min + (range*(ticks-i)/ticks);
+        const y = (chartHeight*i)/ticks;
+        ctx.fillText(price.toFixed(2), chartWidth+4, y);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const stepDate = Math.max(1, Math.round(dates.length/5));
+    for(let i=0;i<dates.length;i+=stepDate){
+        const x = (i - offset) * step;
+        if(x >= 0 && x <= chartWidth){
+            ctx.fillText(dates[i], x, chartHeight+2);
+        }
     }
 }
 
@@ -85,7 +116,7 @@ let pinch = null;
 canvas.addEventListener('mousedown', e => {drag = true; lastX = e.clientX;});
 canvas.addEventListener('mousemove', e => {
     if(drag){
-        const step = canvas.width / (dates.length * scale);
+        const step = (canvas.width - paddingRight) / (dates.length * scale);
         offset += (lastX - e.clientX) / step;
         lastX = e.clientX;
         draw();
@@ -122,7 +153,7 @@ canvas.addEventListener('touchmove', e => {
             draw();
         }
     }else if(drag && e.touches.length === 1){
-        const step = canvas.width / (dates.length * scale);
+        const step = (canvas.width - paddingRight) / (dates.length * scale);
         offset += (lastX - e.touches[0].clientX) / step;
         lastX = e.touches[0].clientX;
         draw();
