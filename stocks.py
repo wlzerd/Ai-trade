@@ -143,15 +143,28 @@ canvas.addEventListener('touchend', () => {drag=false; pinch=null;});
     )
 
 
-def fetch_stock_history(ticker, period="5d"):
-    """Fetch historical stock prices from Polygon.io."""
+def fetch_stock_history(ticker, period="1y", interval="1d"):
+    """Fetch historical stock prices from Polygon.io.
+
+    ``interval`` controls the aggregation resolution (e.g. ``1m``,
+    ``5m``, ``15m``, ``1h``, ``1d``) which maps to Polygon's
+    ``range/{multiplier}/{timespan}`` URL segments.
+    """
     if not POLYGON_API_KEY:
         raise ValueError("POLYGON_API_KEY not set")
 
     end_dt = pd.Timestamp.utcnow()
     start_dt = end_dt - pd.Timedelta(days=365)
+
+    m = re.match(r"(\d+)([a-zA-Z]+)", interval)
+    multiplier = int(m.group(1)) if m else 1
+    unit = m.group(2).lower() if m else "d"
+    unit_map = {"m": "minute", "min": "minute", "h": "hour", "d": "day"}
+    timespan = unit_map.get(unit, "day")
+
     url = (
-        f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day/"
+        f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/"
+        f"{multiplier}/{timespan}/"
         f"{start_dt.strftime('%Y-%m-%d')}/{end_dt.strftime('%Y-%m-%d')}"
     )
     params = {"adjusted": "true", "sort": "asc", "apiKey": POLYGON_API_KEY}
@@ -533,6 +546,13 @@ template = """
         </select>
       </div>
       <div class=\"col-auto\">
+        <select name=\"interval\" class=\"form-select\" onchange=\"this.form.submit()\">
+          {% for i in ['1m','5m','15m','1h','1d'] %}
+          <option value=\"{{ i }}\" {% if i == interval %}selected{% endif %}>{{ i }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class=\"col-auto\">
         <select name=\"chart_type\" class=\"form-select\" onchange=\"this.form.submit()\">
           <option value=\"line\" {% if chart_type == 'line' %}selected{% endif %}>선 차트</option>
           <option value=\"candlestick\" {% if chart_type == 'candlestick' %}selected{% endif %}>캔들스틱</option>
@@ -654,7 +674,8 @@ def index():
 @bp.route("/stock/<ticker>", methods=["GET", "POST"])
 @login_required
 def stock(ticker):
-    period = request.args.get("period", "5d")
+    period = request.args.get("period", "1y")
+    interval = request.args.get("interval", "1d")
     chart_type = request.args.get("chart_type", "line")
     seed = 10000.0
     days = 5
@@ -662,7 +683,7 @@ def stock(ticker):
         seed = float(request.form.get("seed", 10000))
         days = int(request.form.get("days", 5))
     try:
-        data = fetch_stock_history(ticker, period=period)
+        data = fetch_stock_history(ticker, period=period, interval=interval)
         if data.empty:
             raise ValueError("No data found for ticker")
 
@@ -698,6 +719,7 @@ def stock(ticker):
             ticker=ticker,
             data=data,
             period=period,
+            interval=interval,
             chart_type=chart_type,
             chart_html=chart_html,
             dates=dates,
@@ -724,6 +746,7 @@ def stock(ticker):
             ticker=ticker,
             data=None,
             period=period,
+            interval=interval,
             chart_type=chart_type,
             chart_html="",
             dates=[],
