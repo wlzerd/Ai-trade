@@ -13,6 +13,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import openai
 import pandas as pd
 from dotenv import load_dotenv
+
 load_dotenv()
 # Placeholder image used for social previews
 OG_IMAGE_URL = os.getenv("LOGO")
@@ -21,12 +22,12 @@ POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
 from db import get_db
 from auth import login_required
 
-bp = Blueprint('stocks', __name__)
+bp = Blueprint("stocks", __name__)
 
 
-def canvas_chart_block():
+def canvas_chart_block(dates, opens, highs, lows, closes, chart_type):
     """Return HTML for a canvas-based stock chart."""
-    return """
+    template = """
 <canvas id=\"chart\" width=\"800\" height=\"400\"></canvas>
 <script>
 const dates = {{ dates|tojson }};
@@ -131,8 +132,18 @@ canvas.addEventListener('touchend', () => {drag=false; pinch=null;});
 </script>
 """
 
+    return render_template_string(
+        template,
+        dates=dates,
+        opens=opens,
+        highs=highs,
+        lows=lows,
+        closes=closes,
+        chart_type=chart_type,
+    )
 
-def fetch_stock_history(ticker, period='5d'):
+
+def fetch_stock_history(ticker, period="5d"):
     """Fetch historical stock prices from Polygon.io."""
     if not POLYGON_API_KEY:
         raise ValueError("POLYGON_API_KEY not set")
@@ -170,11 +181,11 @@ def fetch_stock_history(ticker, period='5d'):
 
 def gpt_predict_prices(data, days, sentiment):
     key = os.getenv("OPENAI_API_KEY")
-    if not key or data is None or data.empty or 'Close' not in data:
+    if not key or data is None or data.empty or "Close" not in data:
         return None
     try:
         client = openai.OpenAI(api_key=key)
-        closes = [round(float(c), 2) for c in data['Close'].tail(180).tolist()]
+        closes = [round(float(c), 2) for c in data["Close"].tail(180).tolist()]
         prompt = (
             "Predict the next "
             f"{days} closing prices based on this series: {closes} "
@@ -198,14 +209,14 @@ def gpt_predict_prices(data, days, sentiment):
 
 def predict_prices(data, days=5, sentiment=0.0):
     """Predict future close prices using GPT or an AR(1) fallback."""
-    if data is None or data.empty or 'Close' not in data:
+    if data is None or data.empty or "Close" not in data:
         return []
 
     preds = gpt_predict_prices(data, days, sentiment)
     if preds is not None:
         return preds
 
-    closes = data['Close']
+    closes = data["Close"]
     if len(closes) < 3:
         return []
 
@@ -251,7 +262,9 @@ def fetch_news(ticker):
                 "limit": 5,
                 "apiKey": POLYGON_API_KEY,
             }
-            resp = requests.get("https://api.polygon.io/v2/reference/news", params=params, timeout=10)
+            resp = requests.get(
+                "https://api.polygon.io/v2/reference/news", params=params, timeout=10
+            )
             data = resp.json()
             for item in data.get("results", []):
                 title = item.get("title", "")
@@ -266,9 +279,7 @@ def fetch_news(ticker):
 
     # Fallback to Yahoo RSS feed if Polygon request fails
     try:
-        feed_url = (
-            f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
-        )
+        feed_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
         feed = feedparser.parse(feed_url)
         for entry in feed.entries[:5]:
             news.append(
@@ -292,7 +303,7 @@ def gpt_sentiment(news):
         client = openai.OpenAI(api_key=key)
         text = "\n".join(n["title"] for n in news)
         prompt = (
-            "Give a single sentiment score between -1 and 1 for these headlines:"\
+            "Give a single sentiment score between -1 and 1 for these headlines:"
             f"\n{text}\nScore:"
         )
         resp = client.chat.completions.create(
@@ -317,7 +328,7 @@ def analyze_sentiment(news):
     if score is not None:
         return score
     analyzer = SentimentIntensityAnalyzer()
-    scores = [analyzer.polarity_scores(n["title"])['compound'] for n in news]
+    scores = [analyzer.polarity_scores(n["title"])["compound"] for n in news]
     return sum(scores) / len(scores)
 
 
@@ -340,8 +351,8 @@ def gpt_explain_predictions(predictions, sentiment, news):
         titles = "\n".join(n["title"] for n in news) if news else ""
         prompt = (
             "다음 종가 예측 값들을 참고하여 왜 이런 결과가 예상되는지 200토큰으로 간단히 말해 "
-            "한국어로 설명해줘."\
-            f"\n예측: {predictions}\n뉴스 감정: {sentiment:.3f}\n"\
+            "한국어로 설명해줘."
+            f"\n예측: {predictions}\n뉴스 감정: {sentiment:.3f}\n"
             f"제목들:\n{titles}"
         )
         resp = client.chat.completions.create(
@@ -357,11 +368,11 @@ def gpt_explain_predictions(predictions, sentiment, news):
 
 def run_simulation(data, predictions, balance):
     """Simulate adaptive trading based on predicted prices."""
-    if data is None or data.empty or 'Close' not in data or not predictions:
+    if data is None or data.empty or "Close" not in data or not predictions:
         return [], [], ""
 
     last_date = data.index[-1]
-    start_price = float(data['Close'].iloc[-1])
+    start_price = float(data["Close"].iloc[-1])
     current_price = start_price
     no_buy_expected = not any(p > start_price for p in predictions)
     cash = balance
@@ -371,7 +382,7 @@ def run_simulation(data, predictions, balance):
     bought = False
 
     for i, price in enumerate(predictions, start=1):
-        date = (last_date + pd.Timedelta(days=i)).strftime('%Y-%m-%d')
+        date = (last_date + pd.Timedelta(days=i)).strftime("%Y-%m-%d")
         action = None
 
         if price > current_price and price > start_price and cash >= current_price:
@@ -379,42 +390,53 @@ def run_simulation(data, predictions, balance):
             shares_to_buy = cash / current_price
             cash -= shares_to_buy * current_price
             shares += shares_to_buy
-            action = 'BUY'
+            action = "BUY"
             bought = True
         elif price < current_price and shares > 0:
             # Sell if price expected to drop
             cash += shares * current_price
             shares = 0
-            action = 'SELL'
+            action = "SELL"
 
         value = cash + shares * price
-        results.append({'date': date, 'value': value})
+        results.append({"date": date, "value": value})
 
         if action:
-            trades.append({
-                'date': date,
-                'action': action,
-                'shares': shares,
-                'price': current_price,
-                'value': value,
-            })
+            trades.append(
+                {
+                    "date": date,
+                    "action": action,
+                    "shares": shares,
+                    "price": current_price,
+                    "value": value,
+                }
+            )
 
         current_price = price
 
     # Final sell if still holding shares
     if shares > 0:
         cash += shares * current_price
-        trades.append({
-            'date': (last_date + pd.Timedelta(days=len(predictions))).strftime('%Y-%m-%d'),
-            'action': 'SELL',
-            'shares': shares,
-            'price': current_price,
-            'value': cash,
-        })
+        trades.append(
+            {
+                "date": (last_date + pd.Timedelta(days=len(predictions))).strftime(
+                    "%Y-%m-%d"
+                ),
+                "action": "SELL",
+                "shares": shares,
+                "price": current_price,
+                "value": cash,
+            }
+        )
         shares = 0
 
-    note = '' if bought and not no_buy_expected else '지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다.'
+    note = (
+        ""
+        if bought and not no_buy_expected
+        else "지속적인 하락새로 인한 해당기간내에 매수의견이 없습니다."
+    )
     return results, trades, note
+
 
 index_template = """
 <!doctype html>
@@ -599,54 +621,58 @@ template = """
 """
 
 
-@bp.route('/', methods=['GET', 'POST'])
+@bp.route("/", methods=["GET", "POST"])
 @login_required
 def index():
     conn = get_db()
     cursor = conn.cursor()
     message = None
-    if request.method == 'POST':
-        ticker = request.form.get('ticker', '').upper().strip()
+    if request.method == "POST":
+        ticker = request.form.get("ticker", "").upper().strip()
         if ticker:
             try:
-                cursor.execute('INSERT INTO tickers (ticker) VALUES (?)', (ticker,))
+                cursor.execute("INSERT INTO tickers (ticker) VALUES (?)", (ticker,))
                 conn.commit()
                 conn.close()
-                return redirect(url_for('stocks.index'))
+                return redirect(url_for("stocks.index"))
             except Exception:
-                message = 'Ticker already saved.'
-    search = request.args.get('q', '').upper()
+                message = "Ticker already saved."
+    search = request.args.get("q", "").upper()
     if search:
-        cursor.execute('SELECT ticker FROM tickers WHERE ticker LIKE ?', (f"%{search}%",))
+        cursor.execute(
+            "SELECT ticker FROM tickers WHERE ticker LIKE ?", (f"%{search}%",)
+        )
     else:
-        cursor.execute('SELECT ticker FROM tickers')
-    tickers = [row['ticker'] for row in cursor.fetchall()]
+        cursor.execute("SELECT ticker FROM tickers")
+    tickers = [row["ticker"] for row in cursor.fetchall()]
     conn.close()
-    return render_template_string(index_template, tickers=tickers, search=search, message=message)
+    return render_template_string(
+        index_template, tickers=tickers, search=search, message=message
+    )
 
 
-@bp.route('/stock/<ticker>', methods=['GET', 'POST'])
+@bp.route("/stock/<ticker>", methods=["GET", "POST"])
 @login_required
 def stock(ticker):
-    period = request.args.get('period', '5d')
-    chart_type = request.args.get('chart_type', 'line')
+    period = request.args.get("period", "5d")
+    chart_type = request.args.get("chart_type", "line")
     seed = 10000.0
     days = 5
-    if request.method == 'POST':
-        seed = float(request.form.get('seed', 10000))
-        days = int(request.form.get('days', 5))
+    if request.method == "POST":
+        seed = float(request.form.get("seed", 10000))
+        days = int(request.form.get("days", 5))
     try:
         data = fetch_stock_history(ticker, period=period)
         if data.empty:
             raise ValueError("No data found for ticker")
 
-        dates = data.index.strftime('%Y-%m-%d').tolist()
-        opens = data['Open'].astype(float).round(2).tolist()
-        highs = data['High'].astype(float).round(2).tolist()
-        lows = data['Low'].astype(float).round(2).tolist()
-        closes = data['Close'].astype(float).round(2).tolist()
+        dates = data.index.strftime("%Y-%m-%d").tolist()
+        opens = data["Open"].astype(float).round(2).tolist()
+        highs = data["High"].astype(float).round(2).tolist()
+        lows = data["Low"].astype(float).round(2).tolist()
+        closes = data["Close"].astype(float).round(2).tolist()
 
-        chart_html = canvas_chart_block()
+        chart_html = canvas_chart_block(dates, opens, highs, lows, closes, chart_type)
         news = fetch_news(ticker)
         sentiment = analyze_sentiment(news)
         sentiment_label_val = sentiment_to_label(sentiment)
@@ -657,9 +683,12 @@ def stock(ticker):
                 f"최근 {sentiment_label_val} 뉴스 감정({sentiment:.3f})과 "
                 "과거 가격 추세를 고려해 예측했습니다."
             )
-        simulation, trades, note = (run_simulation(data, preds, seed)
-                                    if request.method == 'POST' else ([], [], ''))
-        profit_graph_html = ''
+        simulation, trades, note = (
+            run_simulation(data, preds, seed)
+            if request.method == "POST"
+            else ([], [], "")
+        )
+        profit_graph_html = ""
         if simulation:
             preds = predict_prices(data, days=days, sentiment=sentiment)
             reason = gpt_explain_predictions(preds, sentiment, news)
@@ -696,23 +725,22 @@ def stock(ticker):
             data=None,
             period=period,
             chart_type=chart_type,
-            chart_html='',
+            chart_html="",
             dates=[],
             opens=[],
             highs=[],
             lows=[],
             closes=[],
             predictions=[],
-            prediction_reason='',
+            prediction_reason="",
             news=[],
             sentiment=0.0,
             sentiment_label=sentiment_to_label(0.0),
             simulation=[],
             trades=[],
-            profit_graph='',
+            profit_graph="",
             seed=seed,
             days=days,
-            note='',
+            note="",
             error=str(e),
         )
-
