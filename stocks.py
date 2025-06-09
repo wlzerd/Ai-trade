@@ -8,8 +8,6 @@ from flask import (
 import os
 import re
 import requests
-import plotly.graph_objects as go
-import plotly.io as pio
 import feedparser
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import openai
@@ -24,6 +22,114 @@ from db import get_db
 from auth import login_required
 
 bp = Blueprint('stocks', __name__)
+
+
+def canvas_chart_block():
+    """Return HTML for a canvas-based stock chart."""
+    return """
+<canvas id=\"chart\" width=\"800\" height=\"400\"></canvas>
+<script>
+const dates = {{ dates|tojson }};
+const opens = {{ opens|tojson }};
+const highs = {{ highs|tojson }};
+const lows = {{ lows|tojson }};
+const closes = {{ closes|tojson }};
+const chartType = "{{ chart_type }}";
+let offset = 0;
+let scale = 1;
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+function draw(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const min = Math.min(...lows);
+    const max = Math.max(...highs);
+    const range = max - min || 1;
+    const step = canvas.width / (dates.length * scale);
+    if(chartType === 'line'){
+        ctx.strokeStyle = 'blue';
+        ctx.beginPath();
+        closes.forEach((c,i)=>{
+            const x = (i - offset) * step;
+            const y = canvas.height - ((c - min) / range) * canvas.height;
+            if(i===0){ctx.moveTo(x,y);}else{ctx.lineTo(x,y);}
+        });
+        ctx.stroke();
+    }else{
+        closes.forEach((c,i)=>{
+            const x = (i - offset) * step;
+            const highY = canvas.height - ((highs[i]-min)/range)*canvas.height;
+            const lowY = canvas.height - ((lows[i]-min)/range)*canvas.height;
+            const openY = canvas.height - ((opens[i]-min)/range)*canvas.height;
+            const closeY = canvas.height - ((closes[i]-min)/range)*canvas.height;
+            ctx.strokeStyle = 'black';
+            ctx.beginPath();
+            ctx.moveTo(x, highY);
+            ctx.lineTo(x, lowY);
+            ctx.stroke();
+            ctx.fillStyle = closes[i] >= opens[i] ? 'green' : 'red';
+            const rectY = Math.min(openY, closeY);
+            const rectH = Math.abs(openY - closeY) || 1;
+            ctx.fillRect(x - step*0.3, rectY, step*0.6, rectH);
+        });
+    }
+}
+
+draw();
+
+let drag = false;
+let lastX = 0;
+let pinch = null;
+
+canvas.addEventListener('mousedown', e => {drag = true; lastX = e.clientX;});
+canvas.addEventListener('mousemove', e => {
+    if(drag){
+        const step = canvas.width / (dates.length * scale);
+        offset += (lastX - e.clientX) / step;
+        lastX = e.clientX;
+        draw();
+    }
+});
+window.addEventListener('mouseup', () => {drag = false;});
+
+canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 1.1 : 0.9;
+    scale *= delta;
+    draw();
+});
+
+canvas.addEventListener('touchstart', e => {
+    if(e.touches.length === 2){
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinch = Math.hypot(dx, dy);
+    }else if(e.touches.length === 1){
+        drag = true;
+        lastX = e.touches[0].clientX;
+    }
+});
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if(e.touches.length === 2){
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if(pinch){
+            scale *= pinch / dist;
+            pinch = dist;
+            draw();
+        }
+    }else if(drag && e.touches.length === 1){
+        const step = canvas.width / (dates.length * scale);
+        offset += (lastX - e.touches[0].clientX) / step;
+        lastX = e.touches[0].clientX;
+        draw();
+    }
+});
+canvas.addEventListener('touchend', () => {drag=false; pinch=null;});
+</script>
+"""
 
 
 def fetch_stock_history(ticker, period='5d'):
@@ -411,7 +517,7 @@ template = """
         </select>
       </div>
     </form>
-    {{ graph|safe }}
+    {{ chart_html|safe }}
     <div class=\"table-responsive\">
       <table class=\"table table-striped\">
         <thead>
@@ -534,18 +640,13 @@ def stock(ticker):
         if data.empty:
             raise ValueError("No data found for ticker")
 
-        if chart_type == 'candlestick':
-            fig = go.Figure(data=[go.Candlestick(x=data.index,
-                                                 open=data['Open'],
-                                                 high=data['High'],
-                                                 low=data['Low'],
-                                                 close=data['Close'])])
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Close'))
+        dates = data.index.strftime('%Y-%m-%d').tolist()
+        opens = data['Open'].astype(float).round(2).tolist()
+        highs = data['High'].astype(float).round(2).tolist()
+        lows = data['Low'].astype(float).round(2).tolist()
+        closes = data['Close'].astype(float).round(2).tolist()
 
-        fig.update_layout(title=f"{ticker} Price", xaxis_title="Date", yaxis_title="Price", template="plotly_white")
-        graph_html = pio.to_html(fig, full_html=False)
+        chart_html = canvas_chart_block()
         news = fetch_news(ticker)
         sentiment = analyze_sentiment(news)
         sentiment_label_val = sentiment_to_label(sentiment)
@@ -562,13 +663,6 @@ def stock(ticker):
         if simulation:
             preds = predict_prices(data, days=days, sentiment=sentiment)
             reason = gpt_explain_predictions(preds, sentiment, news)
-            fig2 = go.Figure()
-            fig2.add_trace(go.Scatter(x=[r['date'] for r in simulation],
-                                      y=[r['value'] for r in simulation],
-                                      mode='lines+markers', name='Value'))
-            fig2.update_layout(title='Portfolio Value', xaxis_title='Date',
-                               yaxis_title='Value', template='plotly_white')
-            profit_graph_html = pio.to_html(fig2, full_html=False)
 
         return render_template_string(
             template,
@@ -576,7 +670,12 @@ def stock(ticker):
             data=data,
             period=period,
             chart_type=chart_type,
-            graph=graph_html,
+            chart_html=chart_html,
+            dates=dates,
+            opens=opens,
+            highs=highs,
+            lows=lows,
+            closes=closes,
             predictions=preds,
             prediction_reason=reason,
             news=news,
@@ -597,7 +696,12 @@ def stock(ticker):
             data=None,
             period=period,
             chart_type=chart_type,
-            graph='',
+            chart_html='',
+            dates=[],
+            opens=[],
+            highs=[],
+            lows=[],
+            closes=[],
             predictions=[],
             prediction_reason='',
             news=[],

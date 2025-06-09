@@ -1,5 +1,4 @@
 Flask
-plotly
 feedparser
 vaderSentiment
 openai>=1.0.0
