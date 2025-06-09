@@ -233,7 +233,7 @@ def gpt_explain_predictions(predictions, sentiment, news):
         client = openai.OpenAI(api_key=key)
         titles = "\n".join(n["title"] for n in news) if news else ""
         prompt = (
-            "다음 종가 예측 값들을 참고하여 왜 이런 결과가 예상되는지 간단히 "
+            "다음 종가 예측 값들을 참고하여 왜 이런 결과가 예상되는지 200토큰으로 간단히 말해 "
             "한국어로 설명해줘."\
             f"\n예측: {predictions}\n뉴스 감정: {sentiment:.3f}\n"\
             f"제목들:\n{titles}"
@@ -241,7 +241,7 @@ def gpt_explain_predictions(predictions, sentiment, news):
         resp = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=60,
+            max_tokens=300,
             temperature=0,
         )
         return resp.choices[0].message.content.strip()
@@ -431,7 +431,7 @@ template = """
         </tbody>
       </table>
     </div>
-    <h2 class=\"mt-4\">시뮬레이션</h2>
+    <h2 class=\"mt-4\">GPT기반 시뮬레이션</h2>
     <form method=\"post\" class=\"row gy-2 gx-2 align-items-center mb-3\">
       <div class=\"col-auto\">
         <input name=\"seed\" class=\"form-control\" placeholder=\"시드\" value=\"{{ seed }}\">
