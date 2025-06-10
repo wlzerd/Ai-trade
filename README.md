@@ -72,3 +72,15 @@ The web server will be available at `http://localhost:5000/`. The SQLite
 database file is stored on the host in the `data` directory so that your saved
 tickers persist between runs.
 
+## Anomaly Detection
+
+The `anomalies.py` module flags spikes in trade activity using Polygon's
+advanced tick endpoint. Run it from the command line:
+
+```bash
+python anomalies.py AAPL 2023-09-15 2
+```
+
+Or visit `/anomalies/<ticker>?date=YYYY-MM-DD&threshold=2` to see the
+detected periods in the browser.
+
