@@ -13,6 +13,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import openai
 import pandas as pd
 from dotenv import load_dotenv
+from anomalies import detect_anomalies
 
 load_dotenv()
 # Placeholder image used for social previews
@@ -798,3 +799,54 @@ def stock(ticker):
             note="",
             error=str(e),
         )
+
+@bp.route("/anomalies/<ticker>")
+@login_required
+def show_anomalies(ticker):
+    """Display high trade count periods for the given ticker."""
+    date = request.args.get("date") or pd.Timestamp.utcnow().strftime("%Y-%m-%d")
+    threshold = float(request.args.get("threshold", 3.0))
+    try:
+        anomalies, mean, std = detect_anomalies(ticker, date, threshold)
+        rows = [
+            {"time": ts.strftime("%H:%M"), "count": int(cnt)}
+            for ts, cnt in anomalies.items()
+        ]
+    except Exception as e:
+        rows = []
+        mean = std = 0.0
+        error = str(e)
+    else:
+        error = None
+    template_html = """
+    <!doctype html>
+    <html lang='ko'>
+    <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css' rel='stylesheet'>
+    <title>{{ ticker }} anomalies</title>
+    </head>
+    <body class='container py-4'>
+    <h1>{{ ticker }} {{ date }} 거래 이상 탐지</h1>
+    {% if error %}<div class='alert alert-danger'>{{ error }}</div>{% endif %}
+    <p>평균 {{ mean:.2f }}건, 표준편차 {{ std:.2f }} 기준 {{ threshold }}배 이상인 구간</p>
+    <table class='table table-sm'>
+    <tr><th>시간</th><th>거래 수</th></tr>
+    {% for r in rows %}
+    <tr><td>{{ r.time }}</td><td>{{ r.count }}</td></tr>
+    {% endfor %}
+    </table>
+    </body>
+    </html>
+    """
+    return render_template_string(
+        template_html,
+        ticker=ticker,
+        date=date,
+        rows=rows,
+        mean=mean,
+        std=std,
+        threshold=threshold,
+        error=error,
+    )
